@@ -1,22 +1,32 @@
 {
   "name": "lunke-bot",
   "version": "1.0.0",
-  "main": "index.js",
-  "bin": "LunkeBot_Şifreli.js",
+  "main": "main.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "electron .",
+    "pack": "electron-builder --win portable"
   },
-  "pkg": {
-    "assets": [
+  "build": {
+    "appId": "com.lunke.bot",
+    "productName": "LunkeBot",
+    "win": {
+      "target": [
+        "portable"
+      ]
+    },
+    "files": [
+      "main.js",
       "views/**/*"
-    ],
-    "targets": [
-      "node18-win-x64"
     ]
   },
   "dependencies": {
     "express": "^4.19.2",
     "mineflayer": "^4.22.0",
     "socks": "^2.8.3"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^26.15.3",
+    "electron-packager": "^17.1.2"
   }
 }
