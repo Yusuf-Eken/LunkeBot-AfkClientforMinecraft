@@ -76,6 +76,11 @@
       padding: 8px 10px; border-radius: 6px; font-size: 0.9rem;
     }
     .form-control:focus { outline: none; border-color: var(--primary); }
+    .form-control:disabled {
+      background-color: rgba(189, 0, 255, 0.03);
+      border-color: rgba(189, 0, 255, 0.1);
+      color: #999;
+    }
     
     /* Gelişmiş Ayarlar */
     .advanced-section {
@@ -134,6 +139,7 @@
     .btn-add { background-color: var(--accent); color: white; width: 100%; margin-top: 10px; }
     .btn-delete { background-color: #444; color: #ff3366; padding: 6px 10px; }
     .btn-send { background-color: var(--primary); color: white; width: 90px; }
+    .btn-save { background-color: #4caf50; color: white; width: 100%; margin-top: 10px; box-shadow: 0 0 10px rgba(76,175,80,0.3); }
     
     /* Chat Kutusu */
     .chat-box {
@@ -245,6 +251,29 @@
                 <input type="number" id="add-broadcast-interval" class="form-control" value="300">
               </div>
             </div>
+            <!-- Çift Komut Döngü Otomasyonu -->
+            <div style="border-top: 1px dashed rgba(189,0,255,0.2); margin-top: 10px; padding-top: 10px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div class="form-group">
+                  <label>Döngü Komut 1 (Aksiyon)</label>
+                  <input type="text" id="add-loop-cmd1" class="form-control" placeholder="Örn: /warp zindan">
+                </div>
+                <div class="form-group">
+                  <label>Döngü Komut 2 (Geri Dönüş)</label>
+                  <input type="text" id="add-loop-cmd2" class="form-control" placeholder="Örn: /back">
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div class="form-group">
+                  <label>Döngü Sıklığı (Saniye)</label>
+                  <input type="number" id="add-loop-interval" class="form-control" value="300">
+                </div>
+                <div class="form-group">
+                  <label>Gecikme (Saniye)</label>
+                  <input type="number" id="add-loop-delay" class="form-control" value="10">
+                </div>
+              </div>
+            </div>
           </div>
 
           <button class="btn-add" onclick="addAccount()">Hesabı Listeye Ekle</button>
@@ -270,10 +299,12 @@
       </div>
     </div>
 
-    <!-- Alt Bölüm: Seçili Bot Bilgileri -->
+    <!-- Alt Bölüm: Seçili Bot Bilgileri & Profil Düzenleme -->
     <div class="grid-sub">
-      <div class="card">
+      <div class="card" style="display: flex; flex-direction: column;">
         <h3 id="det-title">Seçili Bot Bilgileri</h3>
+        
+        <!-- Özet Durum Satırı -->
         <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 12px;">
           <img id="det-avatar" src="https://mc-heads.net/avatar/char" style="width:50px; height:50px; border-radius:6px; border:2px solid var(--primary); image-rendering: pixelated;">
           <div>
@@ -283,10 +314,71 @@
           </div>
         </div>
         
-        <!-- Bota Özel Otomasyon Bilgileri Göstergesi -->
-        <div style="margin-bottom: 12px; border-top: 1px dashed rgba(189,20,255,0.15); padding-top: 8px; font-size: 0.8rem;">
-          <p style="margin:3px 0; color: var(--text-muted);">Giriş Komutları: <br><span id="det-commands" style="color:var(--text); font-family: monospace; word-break: break-all;">-</span></p>
-          <p style="margin:5px 0 3px 0; color: var(--text-muted);">Duyuru Reklamı: <span id="det-broadcast" style="color:var(--text); font-weight: bold;">-</span></p>
+        <!-- Dinamik Düzenlenebilir Otomasyon Alanları -->
+        <div style="border-top: 1px dashed rgba(189,20,255,0.15); padding-top: 8px; margin-bottom: 10px;">
+          <p id="edit-lock-notice" style="color: #ffeb3b; font-size: 0.75rem; margin: 0 0 8px 0; display: none;">⚠️ Bot aktif olduğu için ayarlar düzenlemeye kapalıdır.</p>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+            <div class="form-group">
+              <label style="font-size: 0.75rem;">Kullanıcı Adı (Nick)</label>
+              <input type="text" id="det-edit-user" class="form-control" style="font-size:0.85rem; padding: 6px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size: 0.75rem;">Sürüm</label>
+              <input type="text" id="det-edit-version" class="form-control" style="font-size:0.85rem; padding: 6px;">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 8px;">
+            <div class="form-group">
+              <label style="font-size: 0.75rem;">Sunucu IP</label>
+              <input type="text" id="det-edit-host" class="form-control" style="font-size:0.85rem; padding: 6px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size: 0.75rem;">Port</label>
+              <input type="number" id="det-edit-port" class="form-control" style="font-size:0.85rem; padding: 6px;">
+            </div>
+          </div>
+
+          <!-- Katlanabilir Otomasyon Düzenleme Başlığı -->
+          <button class="toggle-advanced-btn" onclick="toggleEditAdvanced()" style="padding: 4px; font-size: 0.75rem; margin-bottom: 8px;">⚙️ Otomasyon Ayarlarını Düzenle</button>
+
+          <div id="det-edit-advanced-section" style="display: none; border-top: 1px solid rgba(189,20,255,0.1); padding-top: 8px;">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 0.75rem;">Giriş Komutları (Satır satır)</label>
+              <textarea id="det-edit-commands" class="form-control" rows="2" style="font-size:0.8rem; font-family: monospace;"></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 8px;">
+              <div class="form-group">
+                <label style="font-size: 0.75rem;">Oto-Reklam Mesajı</label>
+                <input type="text" id="det-edit-broadcast-msg" class="form-control" style="font-size:0.85rem; padding: 6px;">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 0.75rem;">Sıklık (s)</label>
+                <input type="number" id="det-edit-broadcast-interval" class="form-control" style="font-size:0.85rem; padding: 6px;">
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+              <div class="form-group">
+                <label style="font-size: 0.75rem;">Döngü Komut 1</label>
+                <input type="text" id="det-edit-loop-cmd1" class="form-control" style="font-size:0.85rem; padding: 6px;">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 0.75rem;">Döngü Komut 2</label>
+                <input type="text" id="det-edit-loop-cmd2" class="form-control" style="font-size:0.85rem; padding: 6px;">
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div class="form-group">
+                <label style="font-size: 0.75rem;">Döngü Sıklık (s)</label>
+                <input type="number" id="det-edit-loop-interval" class="form-control" style="font-size:0.85rem; padding: 6px;">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 0.75rem;">Gecikme (s)</label>
+                <input type="number" id="det-edit-loop-delay" class="form-control" style="font-size:0.85rem; padding: 6px;">
+              </div>
+            </div>
+          </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -295,6 +387,9 @@
           <button class="btn-afk" onclick="actionSelected('toggle-afk')">AFK Değiştir</button>
           <button class="btn-respawn" onclick="actionSelected('respawn')">Yeniden Doğ</button>
         </div>
+
+        <!-- Değişiklikleri Kaydet Butonu -->
+        <button class="btn-save" id="btn-det-save" onclick="saveSelectedChanges()">Değişiklikleri Kaydet</button>
       </div>
 
       <div class="card">
@@ -317,28 +412,21 @@
     const chatMessages = document.getElementById('chat-messages');
     let selectedUsername = null;
     let localStatusData = {}; 
-
-    // Her botun sohbet geçmişini tuttuğumuz yerel veritabanı
     let chatHistories = {};
 
-    // Ekrana sohbet satırını yazdıran akıllı kaydırmalı fonksiyon
     function appendLogToScreen(text, type = 'server') {
       const div = document.createElement('div');
       div.className = 'log-entry ' + (type === 'system' ? 'log-system' : 'log-server');
       div.textContent = text;
       
-      // Akıllı Kaydırma Kontrolü (Eğer kullanıcı en aşağıda veya en aşağıya yakınsa)
       const isScrolledToBottom = chatMessages.scrollHeight - chatMessages.clientHeight <= chatMessages.scrollTop + 60;
-      
       chatMessages.appendChild(div);
       
-      // Sadece kullanıcı zaten en alttaysa otomatik aşağı kaydır (Geçmişi okurken ekran yukarı fırlamaz!)
       if (isScrolledToBottom) {
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
     }
 
-    // Gelen sohbeti botun geçmişine kaydeden ve eğer o an seçiliyse ekrana da basan fonksiyon
     function addLogToHistory(botName, text, type = 'server') {
       if (!chatHistories[botName]) {
         chatHistories[botName] = [];
@@ -356,11 +444,12 @@
 
     function toggleAdvanced() {
       const section = document.getElementById('advanced-section');
-      if (section.style.display === 'block') {
-        section.style.display = 'none';
-      } else {
-        section.style.display = 'block';
-      }
+      section.style.display = section.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function toggleEditAdvanced() {
+      const section = document.getElementById('det-edit-advanced-section');
+      section.style.display = section.style.display === 'block' ? 'none' : 'block';
     }
 
     async function addAccount() {
@@ -368,9 +457,15 @@
       const host = document.getElementById('add-host').value.trim();
       const port = parseInt(document.getElementById('add-port').value);
       const version = document.getElementById('add-version').value.trim();
+      
       const commands = document.getElementById('add-commands').value;
       const broadcastMsg = document.getElementById('add-broadcast-msg').value.trim();
       const broadcastInterval = parseInt(document.getElementById('add-broadcast-interval').value) || 300;
+
+      const loopCmd1 = document.getElementById('add-loop-cmd1').value.trim();
+      const loopCmd2 = document.getElementById('add-loop-cmd2').value.trim();
+      const loopInterval = parseInt(document.getElementById('add-loop-interval').value) || 300;
+      const loopDelay = parseInt(document.getElementById('add-loop-delay').value) || 10;
 
       if (!username || !host) {
         alert('Kullanıcı adı ve Sunucu IP boş bırakılamaz.');
@@ -380,17 +475,68 @@
       const res = await fetch('/api/accounts/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, host, port, version, commands, broadcastMsg, broadcastInterval })
+        body: JSON.stringify({ 
+          username, host, port, version, commands, broadcastMsg, broadcastInterval,
+          loopCmd1, loopCmd2, loopInterval, loopDelay
+        })
       });
       const data = await res.json();
       if (data.success) {
         document.getElementById('add-user').value = '';
         document.getElementById('add-commands').value = '';
         document.getElementById('add-broadcast-msg').value = '';
+        document.getElementById('add-loop-cmd1').value = '';
+        document.getElementById('add-loop-cmd2').value = '';
         
-        // Yeni bot için boş bir sohbet geçmişi açalım
         chatHistories[username] = [];
         addLogToHistory(username, '[Sistem] Hesap oluşturuldu ve listeye eklendi: ' + username, 'system');
+      }
+    }
+
+    // Profil Düzenlemelerini Diske Kaydeden Fonksiyon (Sadece Çevrimdışıyken çalışır)
+    async function saveSelectedChanges() {
+      if (!selectedUsername) return;
+
+      const payload = {
+        originalUsername: selectedUsername,
+        username: document.getElementById('det-edit-user').value.trim(),
+        version: document.getElementById('det-edit-version').value.trim(),
+        host: document.getElementById('det-edit-host').value.trim(),
+        port: parseInt(document.getElementById('det-edit-port').value) || 25565,
+        commands: document.getElementById('det-edit-commands').value,
+        broadcastMsg: document.getElementById('det-edit-broadcast-msg').value.trim(),
+        broadcastInterval: parseInt(document.getElementById('det-edit-broadcast-interval').value) || 300,
+        loopCmd1: document.getElementById('det-edit-loop-cmd1').value.trim(),
+        loopCmd2: document.getElementById('det-edit-loop-cmd2').value.trim(),
+        loopInterval: parseInt(document.getElementById('det-edit-loop-interval').value) || 300,
+        loopDelay: parseInt(document.getElementById('det-edit-loop-delay').value) || 10
+      };
+
+      if (!payload.username || !payload.host) {
+        alert('Kullanıcı adı ve Sunucu IP boş bırakılamaz.');
+        return;
+      }
+
+      const res = await fetch('/api/accounts/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        appendLogToScreen('[Sistem] Profil ayarları başarıyla güncellendi ve diske kaydedildi.', 'system');
+        
+        // Eğer kullanıcı adı değiştiyse yerel veritabanında geçmişi aktar
+        if (payload.username !== selectedUsername) {
+          chatHistories[payload.username] = chatHistories[selectedUsername] || [];
+          delete chatHistories[selectedUsername];
+          selectedUsername = payload.username;
+        }
+        
+        selectAccount(selectedUsername); // Bilgileri yeniden yükle
+      } else {
+        alert(data.error || 'Profil güncellenirken bir hata oluştu.');
       }
     }
 
@@ -412,7 +558,6 @@
       }
     }
 
-    // Sol listeden hesap seçildiğinde
     function selectAccount(username) {
       selectedUsername = username;
       document.getElementById('det-title').textContent = username;
@@ -434,6 +579,22 @@
       const senderSelect = document.getElementById('chat-sender');
       if (senderSelect) {
         senderSelect.value = username;
+      }
+
+      // Düzenleme kutularını seçili botun verileriyle doldur
+      const s = localStatusData[username];
+      if (s) {
+        document.getElementById('det-edit-user').value = username;
+        document.getElementById('det-edit-version').value = s.version || '1.20.1';
+        document.getElementById('det-edit-host').value = s.host || '';
+        document.getElementById('det-edit-port').value = s.port || 25565;
+        document.getElementById('det-edit-commands').value = s.commands || '';
+        document.getElementById('det-edit-broadcast-msg').value = s.broadcastMsg || '';
+        document.getElementById('det-edit-broadcast-interval').value = s.broadcastInterval || 300;
+        document.getElementById('det-edit-loop-cmd1').value = s.loopCmd1 || '';
+        document.getElementById('det-edit-loop-cmd2').value = s.loopCmd2 || '';
+        document.getElementById('det-edit-loop-interval').value = s.loopInterval || 300;
+        document.getElementById('det-edit-loop-delay').value = s.loopDelay || 10;
       }
 
       updateDetailUI();
@@ -479,10 +640,11 @@
         document.getElementById('det-status').innerHTML = '<span class="badge badge-offline">SEÇİLMEDİ 🔴</span>';
         document.getElementById('det-hp').textContent = 'Can: - | Açlık: -';
         document.getElementById('det-pos').textContent = 'X: - | Y: - | Z: -';
-        document.getElementById('det-commands').innerHTML = '-';
-        document.getElementById('det-broadcast').innerHTML = '-';
         document.getElementById('inventory-list').innerHTML = '<p style="color:var(--text-muted); text-align:center; margin-top:50px;">Hesap seçilmedi.</p>';
         document.getElementById('player-list').innerHTML = '<p style="color:var(--text-muted); text-align:center; margin-top:50px;">Hesap seçilmedi.</p>';
+        
+        // Düzenleme alanlarını kilitle
+        setEditFormDisabled(true);
         return;
       }
 
@@ -490,13 +652,11 @@
       const txtStatus = document.getElementById('det-status');
       const txtHp = document.getElementById('det-hp');
       const txtPos = document.getElementById('det-pos');
-      const txtCmds = document.getElementById('det-commands');
-      const txtBrc = document.getElementById('det-broadcast');
       const invList = document.getElementById('inventory-list');
       const plyList = document.getElementById('player-list');
 
-      txtCmds.innerHTML = s.commands && s.commands.trim() !== '' ? s.commands.replace(/\\n/g, '<br>') : 'Tanımlanmadı';
-      txtBrc.innerHTML = s.hasAutoBroadcaster ? s.broadcastMsg + ' (' + s.broadcastInterval + 's)' : 'Pasif';
+      // Bot Çevrimiçi/Aktif ise tüm düzenleme alanlarını kilitle, değilse aç!
+      setEditFormDisabled(s.online || s.connecting);
 
       if (s.online) {
         txtStatus.innerHTML = '<span class="badge badge-online">ÇEVRİMİÇİ 🟢</span>';
@@ -535,6 +695,21 @@
         invList.innerHTML = '<p style="color:var(--text-muted); text-align:center; margin-top:50px;">Çevrimdışı.</p>';
         plyList.innerHTML = '<p style="color:var(--text-muted); text-align:center; margin-top:50px;">Çevrimdışı.</p>';
       }
+    }
+
+    // Düzenleme form elemanlarını kilitleyen / açan yardımcı fonksiyon
+    function setEditFormDisabled(disabled) {
+      document.getElementById('edit-lock-notice').style.display = disabled && selectedUsername && localStatusData[selectedUsername].online ? 'block' : 'none';
+      document.getElementById('btn-det-save').style.display = disabled ? 'none' : 'block';
+
+      const fields = [
+        'det-edit-user', 'det-edit-version', 'det-edit-host', 'det-edit-port',
+        'det-edit-commands', 'det-edit-broadcast-msg', 'det-edit-broadcast-interval',
+        'det-edit-loop-cmd1', 'det-edit-loop-cmd2', 'det-edit-loop-interval', 'det-edit-loop-delay'
+      ];
+      fields.forEach(function(id) {
+        document.getElementById(id).disabled = disabled;
+      });
     }
 
     const eventSource = new EventSource('/api/stream');
@@ -576,10 +751,10 @@
               selectAccount(usr);
             };
 
-            const automationLabel = s.hasAutoBroadcaster ? '<br><span style="font-size:0.7rem; color:#ffeb3b">📢 Oto-Reklam Aktif</span>' : '';
+            const automationLabel = s.hasAutoBroadcaster || s.hasAutoLoop ? '<br><span style="font-size:0.7rem; color:#ffeb3b">📢 Otomasyon Aktif</span>' : '';
 
             row.innerHTML = '<div class="acc-info">' +
-                              '<img class="acc-avatar" src="https://mc-heads.net/avatar/\s' + usr + '">' +
+                              '<img class="acc-avatar" src="https://mc-heads.net/avatar/' + usr + '">' +
                               '<div>' +
                                 '<span style="font-weight:bold;">' + usr + '</span><br>' +
                                 '<span style="font-size:0.75rem; color:var(--text-muted)">' + s.host + ':' + s.port + '</span>' +
