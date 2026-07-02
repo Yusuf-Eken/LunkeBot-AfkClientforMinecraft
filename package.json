@@ -1,0 +1,21 @@
+{
+  "name": "lunke-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "pkg": {
+    "assets": [
+      "views/**/*"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ]
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mineflayer": "^4.22.0",
+    "socks": "^2.8.3"
+  }
+}
