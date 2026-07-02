@@ -38,8 +38,9 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ACCOUNTS_FILE = path.join(__dirname, 'accounts.json');
-
+const ACCOUNTS_FILE = process.pkg 
+  ? path.join(path.dirname(process.execPath), 'accounts.json') 
+  : path.join(__dirname, 'accounts.json');
 // Kayıtlı hesapların havuzu
 let accounts = [];
 

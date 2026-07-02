@@ -2,6 +2,7 @@
   "name": "lunke-bot",
   "version": "1.0.0",
   "main": "index.js",
+  "bin": "LunkeBot_Şifreli.js",
   "scripts": {
     "start": "node index.js"
   },
