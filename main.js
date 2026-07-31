@@ -78,7 +78,7 @@ function broadcast(type, data) {
 app.post('/api/accounts/add', (req, res) => {
   const { username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmd1, loopCmd2, loopInterval, loopDelay } = req.body;
   if (accounts.some(acc => acc.username === username)) {
-    return res.json({ success: false, error: 'Bu kullanıcı adı zaten var.' });
+    return res.json({ success: false, error: 'Bu kullanıcı adı zaten listede var.' });
   }
   accounts.push({ 
     username, host, port, version, 
@@ -98,9 +98,9 @@ app.post('/api/accounts/add', (req, res) => {
 app.post('/api/accounts/edit', (req, res) => {
   const { originalUsername, username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmd1, loopCmd2, loopInterval, loopDelay } = req.body;
   
-  // Bot aktif ise güvenlik nedeniyle düzenlemeyi reddet
+  // Bot aktif veya bağlanıyorsa düzenlemeyi reddet (Güvenlik Kuralı)
   if (activeBots[originalUsername]) {
-    return res.json({ success: false, error: 'Aktif bir botun ayarlarını düzenleyemezsiniz. Lütfen önce bağlantıyı kesin.' });
+    return res.json({ success: false, error: 'Aktif veya bağlanmaya çalışan bir botun ayarlarını düzenleyemezsiniz. Lütfen önce bağlantıyı kesin.' });
   }
 
   const index = accounts.findIndex(acc => acc.username === originalUsername);
@@ -132,19 +132,28 @@ app.post('/api/accounts/edit', (req, res) => {
   res.json({ success: true });
 });
 
-// Hesap Silme API'si
+// Hesap Silme API'si (Tüm zamanlayıcıları güvenle kapatır ve çökmeyi önler)
 app.post('/api/accounts/delete', (req, res) => {
-  const { username } = req.body;
-  if (activeBots[username]) {
-    if (activeBots[username].afkTimer) clearInterval(activeBots[username].afkTimer);
-    if (activeBots[username].broadcastTimer) clearInterval(activeBots[username].broadcastTimer);
-    if (activeBots[username].loopTimer) clearInterval(activeBots[username].loopTimer);
-    activeBots[username].instance.quit();
-    delete activeBots[username];
+  try {
+    const { username } = req.body;
+    
+    // Eğer bot aktifse veya bağlanmaya çalışıyorsa tüm zamanlayıcılarını ve motoru temizleyelim
+    const active = activeBots[username];
+    if (active) {
+      if (active.afkTimer) clearInterval(active.afkTimer);
+      if (active.broadcastTimer) clearInterval(active.broadcastTimer);
+      if (active.loopTimer) clearInterval(active.loopTimer);
+      if (active.reconnectTimer) clearTimeout(active.reconnectTimer); // Sinsi geri bağlanma zamanlayıcısını sil!
+      if (active.instance) active.instance.quit();
+      delete activeBots[username];
+    }
+    
+    accounts = accounts.filter(acc => acc.username !== username);
+    saveAccounts(accounts);
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: 'Hesap silinirken bir hata oluştu: ' + err.message });
   }
-  accounts = accounts.filter(acc => acc.username !== username);
-  saveAccounts(accounts);
-  res.json({ success: true });
 });
 
 // Chat Mesajı Gönderme API'si
@@ -182,6 +191,7 @@ setInterval(() => {
       connecting: active ? active.connecting : false,
       host: acc.host,
       port: acc.port,
+      proxy: acc.proxy || null,
       commands: acc.commands || '',
       broadcastMsg: acc.broadcastMsg || '',
       broadcastInterval: acc.broadcastInterval || 300,
@@ -209,20 +219,22 @@ app.post('/api/control', (req, res) => {
 
   if (action === 'connect') {
     if (!activeBots[username]) {
-      activeBots[username] = { instance: null, afkTimer: null, broadcastTimer: null, loopTimer: null, connecting: true, antiAfk: true, manualDisconnect: false };
+      // reconnectTimer: null parametresini ekliyoruz
+      activeBots[username] = { instance: null, afkTimer: null, broadcastTimer: null, loopTimer: null, reconnectTimer: null, connecting: true, antiAfk: true, manualDisconnect: false };
       startBot(acc);
       res.json({ success: true });
     }
   } else if (action === 'disconnect') {
     const active = activeBots[username];
     if (active) {
-      active.manualDisconnect = true;
+      active.manualDisconnect = true; // El ile kapatıldı
       if (active.afkTimer) clearInterval(active.afkTimer);
       if (active.broadcastTimer) clearInterval(active.broadcastTimer);
       if (active.loopTimer) clearInterval(active.loopTimer);
+      if (active.reconnectTimer) clearTimeout(active.reconnectTimer); // Sinsi geri bağlanma zamanlayıcısını anında iptal et!
       if (active.instance) active.instance.quit();
       delete activeBots[username];
-      broadcast('chat', { bot: username, text: `[Sistem] Sunucu ile bağlantı panelden kesildi.` });
+      broadcast('chat', { bot: username, text: `[Sistem] Sunucu ile bağlantı panelden el ile kesildi.` });
       res.json({ success: true });
     }
   } else if (action === 'toggle-afk') {
@@ -251,10 +263,12 @@ function startBot(acc) {
   if (activeBots[username]) activeBots[username].instance = botInstance;
 
   botInstance.once('spawn', () => {
-    if (activeBots[username]) activeBots[username].connecting = false;
+    if (activeBots[username]) {
+      activeBots[username].connecting = false;
+    }
     broadcast('chat', { bot: username, text: `[Sistem] Başarıyla oyuna girdi!` });
 
-    // 1. Sıralı Giriş Komutları Otomasyonu (4 saniye gecikmeli)
+    // 1. Gecikmeli Sıralı Giriş Komutları
     if (acc.commands && acc.commands.trim() !== '') {
       const cmdLines = acc.commands.split('\n').map(l => l.trim()).filter(l => l.length > 0);
       cmdLines.forEach((line, index) => {
@@ -265,7 +279,7 @@ function startBot(acc) {
       });
     }
 
-    // 2. Zaman Ayarlı Reklam / Duyuru Otomasyonu
+    // 2. Zaman Ayarlı Reklam Otomasyonu
     if (acc.broadcastMsg && acc.broadcastMsg.trim() !== '' && acc.broadcastInterval > 0) {
       if (activeBots[username].broadcastTimer) clearInterval(activeBots[username].broadcastTimer);
       activeBots[username].broadcastTimer = setInterval(() => {
@@ -313,7 +327,6 @@ function startBot(acc) {
   botInstance.on('message', (jsonMsg) => {
     const rawMessage = jsonMsg.toString().trim();
     if (!rawMessage || rawMessage.startsWith('===') || rawMessage.startsWith('---')) return;
-
     broadcast('chat', { bot: username, text: `[Sunucu]: ${rawMessage}` });
   });
 
@@ -323,17 +336,23 @@ function startBot(acc) {
   });
 
   botInstance.on('end', (reason) => {
-    broadcast('chat', { bot: username, text: `[Sistem] Bağlantı koptu: ${reason}` });
+    broadcast('chat', { bot: username, text: `[Sistem] Bağlantısı koptu: ${reason}` });
     const active = activeBots[username];
     if (active) {
       if (active.afkTimer) clearInterval(active.afkTimer);
       if (active.broadcastTimer) clearInterval(active.broadcastTimer);
       if (active.loopTimer) clearInterval(active.loopTimer);
     }
+    
+    // Eğer el ile kapatılmadıysa (Sistem veya sunucu nedeniyle düştüyse) otomatik geri bağlan
     if (active && !active.manualDisconnect) {
       active.connecting = true;
       broadcast('chat', { bot: username, text: `[Sistem] 8 saniye içinde otomatik yeniden bağlanacak...` });
-      setTimeout(() => { startBot(acc); }, 8000);
+      
+      // Zamanlayıcıyı reconnectTimer değişkenine kaydediyoruz (El ile kapatıldığında iptal edebilmek için)
+      active.reconnectTimer = setTimeout(() => { 
+        startBot(acc); 
+      }, 8000);
     } else {
       delete activeBots[username];
     }
@@ -365,18 +384,11 @@ function createWindow() {
 
   win.loadURL(`http://127.0.0.1:${PORT}`);
 
-  // Çarpıya basıldığında tamamen kapatmak yerine sistemi tepsisine küçült (Gizle)
+  // Çarpı (X) butonuna tıklandığında sessizce arkaya küçül! (Steam/Discord Tarzı)
   win.on('close', (event) => {
     if (!isQuitting) {
-      event.preventDefault(); // Kapatma işlemini durdur
-      win.hide(); // Pencereyi tamamen gizle
-      
-      if (tray) {
-        tray.displayBalloon({
-          title: "Lunke Bot Arka Planda",
-          content: "Uygulama arka planda çalışmaya devam ediyor. Saat yanındaki ikondan açabilir veya kapatabilirsiniz."
-        });
-      }
+      event.preventDefault(); // Kapatmayı engelle
+      win.hide(); // Sadece pencereyi gizle
     }
     return false;
   });
@@ -385,7 +397,7 @@ function createWindow() {
 electronApp.whenReady().then(() => {
   createWindow();
 
-  // NATIVE ELECTRON SİSTEM TEPSİSİ (Saat yanı ikon)
+  // YEREL SİSTEM TEPSİSİ (Saat yanı ikon) KURULUMU
   const iconPath = path.join(__dirname, 'views', 'icon.ico');
   tray = new Tray(iconPath);
 
@@ -400,7 +412,7 @@ electronApp.whenReady().then(() => {
     { 
       label: 'Kapat (Sonlandır)', 
       click: () => {
-        isQuitting = true; // Kapatma kilidini aç
+        isQuitting = true; // Tamamen çıkış bayrağını doğrula
         electronApp.quit(); // Programı tamamen kapat
       } 
     }
