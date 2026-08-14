@@ -5,317 +5,189 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lunke Bot - Multi AFK Client</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    /* LUNKE BOT PALETTE */
     :root {
-      --bg-dark: #0a0612;
-      --bg-card: #130c22;
-      --primary: #bd00ff;
-      --primary-glow: rgba(189, 0, 255, 0.4);
-      --accent: #8a2be2;
-      --text: #e2d9f3;
-      --text-muted: #887b9c;
-      --red-eye: #ff3366;
+      --bg-dark: #090514;
+      --bg-card: #120924;
+      --bg-input: #0b0617;
+      --border-color: rgba(168, 85, 247, 0.15);
+      --border-hover: rgba(168, 85, 247, 0.5);
+      
+      --accent-purple: #a855f7;
+      --accent-purple-glow: #c084fc;
+      --accent-red: #ef4444;
+
+      --text-main: #f3e8ff;
+      --text-muted: #9482b5;
+      
+      --status-online: #10b981;
+      --status-connecting: #f59e0b;
+      --status-offline: #ef4444;
     }
+
+    * { box-sizing: border-box; }
+
     body {
       background-color: var(--bg-dark);
-      color: var(--text);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100vh;
-      box-sizing: border-box;
-      overflow: hidden;
+      color: var(--text-main);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0; padding: 16px;
+      display: flex; flex-direction: column; align-items: center;
+      height: 100vh; overflow: hidden;
+      position: relative;
     }
-    .container {
-      width: 100%;
-      max-width: 1100px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
+
+    .container { width: 100%; max-width: 1380px; height: 100%; display: flex; flex-direction: column; gap: 12px; }
+
     header {
-      text-align: center;
-      margin-bottom: 25px;
-      border-bottom: 2px solid var(--primary);
-      padding-bottom: 5px;
-      flex: none;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 18px; background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; flex: none; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
-    h1 {
-      color: var(--primary);
-      margin: 5px 0;
-      font-size: 2rem;
-      text-shadow: 0 0 10px var(--primary-glow);
-      letter-spacing: 2px;
-    }
-    .grid-main {
-      display: grid;
-      grid-template-columns: 1.2fr 2fr;
-      gap: 20px;
-      flex: 1;
-      min-height: 0;
-      margin-bottom: 10px;
-    }
-    @media (max-width: 900px) {
-      .grid-main { grid-template-columns: 1fr; height: auto; overflow: auto; }
-    }
+    h1 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: 1px; color: #fff; display: flex; align-items: center; gap: 10px; }
+    h1::before { content: ''; display: inline-block; width: 10px; height: 10px; background: var(--accent-purple); border-radius: 50%; box-shadow: 0 0 12px var(--accent-purple-glow); }
+
+    .grid-main { display: grid; grid-template-columns: 360px 1fr; gap: 12px; flex: 1; min-height: 0; }
+
     .card {
-      background-color: var(--bg-card);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.5);
-      border: 1px solid rgba(189, 0, 255, 0.15);
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
+      background-color: var(--bg-card); padding: 16px; border-radius: 12px;
+      border: 1px solid var(--border-color); display: flex; flex-direction: column; min-height: 0;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
     .card h3 {
-      margin: 0 0 15px 0;
-      color: var(--primary);
-      font-size: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      border-bottom: 1px solid rgba(189, 0, 255, 0.2);
-      padding-bottom: 5px;
-      flex: none;
+      margin: 0 0 12px 0; color: #fff; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.8px; display: flex; align-items: center; justify-content: space-between; flex: none;
     }
-    
-    /* Form */
-    .form-group { margin-bottom: 10px; }
-    .form-group label { display: block; margin-bottom: 4px; font-size: 0.8rem; color: var(--text-muted); }
+
+    .form-group { margin-bottom: 8px; }
+    .form-group label { display: block; margin-bottom: 4px; font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
     .form-control {
-      width: 100%; box-sizing: border-box; background-color: #0a0612;
-      border: 1px solid rgba(189, 0, 255, 0.3); color: white;
-      padding: 8px 10px; border-radius: 6px; font-size: 0.9rem;
+      width: 100%; background-color: var(--bg-input); border: 1px solid var(--border-color);
+      color: #fff; padding: 7px 10px; border-radius: 6px; font-size: 0.82rem; transition: border 0.15s;
     }
-    .form-control:focus { outline: none; border-color: var(--primary); }
-    .form-control:disabled {
-      background-color: rgba(189, 0, 255, 0.03);
-      border-color: rgba(189, 0, 255, 0.05);
-      color: #777;
-    }
-    
-    /* Hesap Listesi */
-    .account-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      flex: 1;
-      overflow-y: auto;
-    }
+    .form-control:focus { outline: none; border-color: var(--accent-purple); box-shadow: 0 0 8px rgba(168, 85, 247, 0.2); }
+
+    .batch-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; flex: none; }
+    .btn-batch { padding: 8px; font-size: 0.78rem; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; }
+    .btn-batch-connect { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
+    .btn-batch-connect:hover { background: rgba(16, 185, 129, 0.25); }
+    .btn-batch-disconnect { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); }
+    .btn-batch-disconnect:hover { background: rgba(239, 68, 68, 0.25); }
+
+    .account-list { display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto; padding-right: 4px; }
     .account-row {
-      background-color: #0a0612;
-      border: 1px solid rgba(189,0,255,0.1);
-      border-radius: 8px;
-      padding: 10px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      transition: all 0.2s;
+      background-color: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px;
+      padding: 10px; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; transition: all 0.2s ease;
     }
-    .account-row:hover, .account-row.selected {
-      border-color: var(--primary);
-      box-shadow: 0 0 8px var(--primary-glow);
+    .account-row:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+    .account-row.selected { border-color: var(--accent-purple); background: rgba(168, 85, 247, 0.08); box-shadow: 0 0 12px rgba(168, 85, 247, 0.15); }
+
+    .acc-left { display: flex; align-items: center; gap: 10px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.online { background: var(--status-online); box-shadow: 0 0 8px var(--status-online); }
+    .status-dot.connecting { background: var(--status-connecting); box-shadow: 0 0 8px var(--status-connecting); }
+    .status-dot.offline { background: var(--status-offline); box-shadow: none; }
+
+    .acc-avatar { width: 32px; height: 32px; border-radius: 6px; background: #190e33; border: 1px solid rgba(168, 85, 247, 0.3); image-rendering: pixelated; }
+    .acc-details { display: flex; flex-direction: column; gap: 2px; }
+    .acc-name { font-weight: 600; font-size: 0.85rem; color: #fff; }
+    .acc-server { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* Sadece İkonlu Buton Tasarımı */
+    .btn-group-quick { display: flex; gap: 6px; }
+    .btn-icon-only {
+      width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
+      transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
-    .acc-info { display: flex; align-items: center; gap: 10px; }
-    .acc-avatar { width: 36px; height: 36px; border-radius: 4px; border: 1px solid var(--primary); image-rendering: pixelated; }
+    .btn-icon-only.connect { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .btn-icon-only.connect:hover { background: rgba(16, 185, 129, 0.35); transform: scale(1.08); }
+    .btn-icon-only.disconnect { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .btn-icon-only.disconnect:hover { background: rgba(239, 68, 68, 0.35); transform: scale(1.08); }
+
+    /* SAĞ PANEL & SEKMELİ MİMARİ */
+    .right-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; background-color: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
     
-    /* Butonlar */
-    button { padding: 8px 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
-    button:hover { opacity: 0.9; }
-    .btn-connect { background-color: var(--primary); color: white; }
-    .btn-disconnect { background-color: var(--red-eye); color: white; }
-    .btn-add { background-color: var(--accent); color: white; width: 100%; margin-top: 10px; }
-    .btn-delete { background-color: #444; color: #ff3366; padding: 6px 10px; }
-    .btn-send { background-color: var(--primary); color: white; width: 90px; }
-    .btn-save { background-color: #4caf50; color: white; width: 100%; margin-top: 10px; }
-    .toggle-advanced-btn {
-      background: none; border: 1px solid var(--accent); color: var(--text);
-      cursor: pointer; width: 100%; padding: 6px; margin-top: 5px; border-radius: 6px; font-size: 0.8rem;
+    .panel-tabs { display: flex; background: #180d30; border-bottom: 1px solid var(--border-color); flex: none; }
+    .tab-btn { padding: 12px 20px; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab-btn:hover { color: #fff; }
+    .tab-btn.active { color: #fff; border-bottom-color: var(--accent-purple); background: rgba(168, 85, 247, 0.08); }
+
+    .tab-content { display: none; flex: 1; min-height: 0; flex-direction: column; }
+    .tab-content.active { display: flex; }
+
+    /* Tab 1: Chat */
+    .chat-messages { flex: 1; padding: 16px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: #06030c; }
+    .log-entry { padding: 4px 0; display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+    .chat-tag { font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; }
+    .tag-system { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .tag-error { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .tag-login { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .tag-ad { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .tag-loop { background: rgba(192, 132, 252, 0.2); color: #e9d5ff; }
+    .tag-server { background: rgba(255, 255, 255, 0.05); color: #9482b5; }
+    .chat-text { color: #e9d5ff; line-height: 1.4; word-break: break-all; }
+
+    .chat-input-area { padding: 12px; background: #130a26; border-top: 1px solid var(--border-color); display: flex; gap: 8px; flex: none; }
+    .chat-select, .chat-input { background: var(--bg-input); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.82rem; }
+    .chat-select { width: 150px; } .chat-input { flex: 1; }
+    .btn-send { background: var(--accent-purple); color: #fff; border: none; padding: 0 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+    /* Tab 2 & 3 Content */
+    .tab-padding { padding: 20px; overflow-y: auto; flex: 1; }
+    .btn-action { padding: 8px 16px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; }
+    .btn-action.save { background: #10b981; color: #fff; }
+    .btn-action.delete { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .inventory-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; background: var(--bg-input); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 8px; }
+    .inv-slot { background: var(--bg-card); border: 1px solid var(--border-color); height: 42px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.65rem; color: #e9d5ff; cursor: pointer; }
+    .inv-slot:hover { border-color: var(--accent-purple); background: rgba(168, 85, 247, 0.15); }
+    .inv-count { font-weight: 700; color: #f59e0b; }
+    .toggle-advanced-btn { background: none; border: 1px dashed var(--border-color); color: var(--text-muted); width: 100%; padding: 6px; margin-top: 6px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+
+    /* ONLINE BOT AYARLAR KİLİT (BLUR OVERLAY) YAPISI */
+    .settings-container { position: relative; }
+    .settings-overlay {
+      position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+      background: rgba(9, 5, 20, 0.82);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.3); color: #fcd34d;
+      font-weight: 600; font-size: 0.95rem; text-align: center; padding: 20px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
     }
 
-    /* Gelişmiş Ayarlar */
-    .advanced-section { display: none; margin-top: 15px; border-top: 1px dashed rgba(189, 0, 255, 0.3); padding-top: 15px; }
-
-    /* Discord Tarzı Chat Kutusu */
-    .chat-box {
-      background-color: var(--bg-card);
-      border-radius: 12px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.5);
-      border: 1px solid rgba(189, 0, 255, 0.15);
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-height: 0;
-      position: relative;
+    /* CUSTOM TOAST NOTIFICATION (Native Alert Yerine) */
+    .toast-notification {
+      position: fixed; top: 20px; right: 20px; z-index: 9999;
+      background: #1e0a2a; border: 1px solid var(--accent-red); color: #fca5a5;
+      padding: 12px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: flex; align-items: center; gap: 10px;
+      transform: translateY(-20px); opacity: 0; transition: all 0.3s ease;
     }
-    .chat-box::before {
-      content: '';
-      position: absolute;
-      top: 45px;
-      left: 0;
-      right: 0;
-      height: 35px;
-      background: linear-gradient(to bottom, var(--bg-card) 0%, rgba(19, 12, 34, 0) 100%);
-      pointer-events: none;
-      z-index: 2;
-    }
-    .chat-header {
-      padding: 12px 20px;
-      background-color: #1a122e;
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
-      font-weight: bold;
-      color: var(--primary);
-      border-bottom: 1px solid rgba(189,0,255,0.2);
-      flex: none;
-    }
-    .chat-messages {
-      flex: 1;
-      padding: 20px 15px 15px 15px;
-      overflow-y: auto;
-      font-family: 'Consolas', 'Courier New', monospace;
-      font-size: 0.9rem;
-      border-bottom: 1px solid rgba(189,0,255,0.1);
-      background-color: #080410;
-    }
-    
-    /* GÖNDERİCİ SEÇİMİ VE GİRİŞ KUTUSU TASARIM DÜZELTMESİ */
-    .chat-input-area { display: flex; padding: 10px; gap: 10px; flex: none; }
-    .chat-select, .chat-input {
-      background-color: #0a0612 !important;
-      border: 1px solid rgba(189, 0, 255, 0.3) !important;
-      color: #e2d9f3 !important;
-      padding: 10px 15px !important;
-      border-radius: 6px !important;
-      font-size: 0.9rem !important;
-      box-sizing: border-box;
-    }
-    .chat-select { width: 140px; cursor: pointer; }
-    .chat-input { flex: 1; }
-    .chat-select:focus, .chat-input:focus {
-      outline: none !important;
-      border-color: var(--primary) !important;
-      box-shadow: 0 0 8px var(--primary-glow) !important;
-    }
-    
-    /* Canlı Chat Satırları & Etiketleri */
-    .log-entry {
-      padding: 6px 12px;
-      border-radius: 6px;
-      margin-bottom: 5px;
-      transition: background-color 0.15s ease;
-      border-bottom: 1px solid rgba(189,0,255,0.02);
-      display: flex;
-      align-items: flex-start;
-    }
-    .log-entry:hover { background-color: rgba(189, 0, 255, 0.05); }
-    .chat-tag {
-      font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem;
-      margin-right: 8px; display: inline-block; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .tag-system { background-color: #2b1f47; color: #d8b4fe; }
-    .tag-error { background-color: #581c24; color: #fca5a5; }
-    .tag-login { background-color: #14532d; color: #86efac; }
-    .tag-ad { background-color: #713f12; color: #fde047; }
-    .tag-loop { background-color: #1e3a8a; color: #93c5fd; }
-    .tag-server { background-color: #1e293b; color: #94a3b8; }
-    .chat-text { color: #d1c8e2; line-height: 1.4; word-break: break-all; }
-    
-    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-    .badge-online { background-color: #4caf50; color: white; }
-    .badge-offline { background-color: #f44336; color: white; }
-    .badge-connecting { background-color: #ff9800; color: white; }
-
-    /* KOZMİK MOR MODAL YAPISI */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background-color: rgba(10, 6, 18, 0.85);
-      backdrop-filter: blur(6px);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-card {
-      background-color: var(--bg-card);
-      border: 2px solid var(--primary);
-      box-shadow: 0 0 20px var(--primary-glow);
-      border-radius: 14px;
-      width: 90%;
-      max-width: 500px;
-      max-height: 85%;
-      overflow-y: auto;
-      padding: 25px;
-      position: relative;
-      animation: modalFadeIn 0.25s ease;
-    }
-    @keyframes modalFadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-    .modal-close-btn {
-      position: absolute;
-      top: 15px; right: 15px;
-      background: none; border: none;
-      color: var(--text-muted); font-size: 1.5rem;
-      cursor: pointer; transition: color 0.2s;
-    }
-    .modal-close-btn:hover { color: var(--red-eye); }
-
-    /* TIKLA-DOLDUR SON YAZILAN BALONCUK ALANI (Son 5 Mesaj / Yatay Esnek Yapı) */
-    .last-sent-container {
-      display: none;
-      padding: 6px 15px;
-      background-color: #0b0718;
-      font-size: 0.8rem;
-      border-top: 1px solid rgba(189,20,255,0.05);
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap; /* Taşmaları önler alt satıra geçer */
-      flex-shrink: 0;
-    }
-    .last-sent-bubble {
-      background-color: #2b1f47;
-      color: #d8b4fe;
-      padding: 3px 10px;
-      border-radius: 12px;
-      cursor: pointer;
-      border: 1px solid rgba(189,0,255,0.2);
-      font-family: monospace;
-      transition: all 0.2s ease;
-    }
-    .last-sent-bubble:hover {
-      background-color: var(--primary);
-      color: white;
-      box-shadow: 0 0 8px var(--primary-glow);
-    }
+    .toast-notification.show { transform: translateY(0); opacity: 1; }
   </style>
 </head>
 <body>
+  <div id="toast-msg" class="toast-notification">⚠️ <span id="toast-text"></span></div>
+
   <div class="container">
     <header>
       <h1>LUNKE BOT</h1>
-      <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem; letter-spacing: 2px;">MULTI ACCOUNT AFK CLIENT</p>
     </header>
 
     <div class="grid-main">
       <!-- Sol Panel -->
-      <div style="display: flex; flex-direction: column; gap: 15px; min-height: 0;">
-        <!-- Hesap Ekleme Kartı -->
-        <div class="card" style="padding: 15px; flex: none;">
-          <h3 style="font-size:0.9rem; margin-bottom:10px;">Yeni Hesap Ekle</h3>
-          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
-            <div class="form-group">
-              <label style="font-size:0.75rem;">Kullanıcı Adı (Nick)</label>
-              <input type="text" id="add-user" class="form-control" style="padding:6px;" placeholder="Örn: LunkePlayer">
-            </div>
-            <div class="form-group">
-              <label style="font-size:0.75rem;">Sürüm</label>
-              <select id="add-version" class="form-control" style="padding:5px; font-size:0.85rem;">
+      <div style="display: flex; flex-direction: column; gap: 12px; min-height: 0;">
+        <div class="card" style="flex: none;">
+          <h3>Yeni Hesap Ekle</h3>
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 6px;">
+            <div class="form-group"><label>Kullanıcı Adı</label><input type="text" id="add-user" class="form-control" placeholder="Bot Nick"></div>
+            <div class="form-group"><label>Sürüm</label>
+              <select id="add-version" class="form-control">
                 <option value="1.21.11" selected>1.21.11</option>
                 <option value="1.21.9">1.21.9</option>
                 <option value="1.21.8">1.21.8</option>
@@ -334,200 +206,149 @@
               </select>
             </div>
           </div>
-          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
-            <div class="form-group">
-              <label style="font-size:0.75rem;">Sunucu IP</label>
-              <input type="text" id="add-host" class="form-control" style="padding:6px;" placeholder="Örn: sunucu.com">
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 6px;">
+            <div class="form-group"><label>Sunucu IP</label><input type="text" id="add-host" class="form-control" placeholder="sunucu.com"></div>
+            <div class="form-group"><label>Port</label><input type="number" id="add-port" class="form-control" value="25565"></div>
+          </div>
+
+          <button class="toggle-advanced-btn" onclick="toggleAdvanced()">⚙️ Otomasyon Ayarları</button>
+
+          <div class="advanced-section" id="advanced-section" style="display:none; margin-top:8px; border-top:1px dashed var(--border-color); padding-top:8px;">
+            <div class="form-group"><label>Sıralı Giriş Komutları</label><textarea id="add-commands" class="form-control" rows="2" placeholder="/login sifre"></textarea></div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 6px;">
+              <div class="form-group"><label>Reklam Mesajı</label><input type="text" id="add-broadcast-msg" class="form-control"></div>
+              <div class="form-group"><label>Sıklık (s)</label><input type="number" id="add-broadcast-interval" class="form-control" value="300"></div>
             </div>
-            <div class="form-group">
-              <label style="font-size:0.75rem;">Port</label>
-              <input type="number" id="add-port" class="form-control" style="padding:6px;" value="25565">
+            <div class="form-group"><label>Döngü Komutları (Alt alta)</label><textarea id="add-loop-cmds" class="form-control" rows="2" placeholder="/pw SpawnerSat&#10;/back"></textarea></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+              <div class="form-group"><label>Sıklık (s)</label><input type="number" id="add-loop-interval" class="form-control" value="300"></div>
+              <div class="form-group"><label>Gecikme (s)</label><input type="number" id="add-loop-delay" class="form-control" value="10"></div>
+              <div class="form-group"><label>Restart (dk)</label><input type="number" id="add-restart-mins" class="form-control" value="0"></div>
             </div>
           </div>
 
-          <button class="toggle-advanced-btn" onclick="toggleAdvanced()" style="padding: 4px; font-size: 0.75rem;">⚙️ Otomasyon Ayarları</button>
-
-          <!-- Gelişmiş Ayarlar Bölümü -->
-          <div class="advanced-section" id="advanced-section">
-            <div class="form-group">
-              <label style="font-size:0.75rem;">Sıralı Giriş Komutları (Her satıra bir komut)</label>
-              <textarea id="add-commands" class="form-control" rows="2" style="font-family: monospace; font-size:0.8rem;" placeholder="/login sifre123&#10;/server faction"></textarea>
-            </div>
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
-              <div class="form-group">
-                <label style="font-size:0.75rem;">Reklam Mesajı</label>
-                <input type="text" id="add-broadcast-msg" class="form-control" style="padding:6px; font-size:0.85rem;" placeholder="Maden pazar aktif!">
-              </div>
-              <div class="form-group">
-                <label style="font-size:0.75rem;">Sıklık (s)</label>
-                <input type="number" id="add-broadcast-interval" class="form-control" style="padding:6px; font-size:0.85rem;" value="300">
-              </div>
-            </div>
-            <!-- Çift Komut Döngü Otomasyonu -->
-            <div style="border-top: 1px dashed rgba(189,0,255,0.2); margin-top: 8px; padding-top: 8px;">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <div class="form-group">
-                  <label style="font-size:0.75rem;">Döngü Komut 1</label>
-                  <input type="text" id="add-loop-cmd1" class="form-control" style="padding:6px; font-size:0.85rem;" placeholder="/warp zindan">
-                </div>
-                <div class="form-group">
-                  <label style="font-size:0.75rem;">Döngü Komut 2</label>
-                  <input type="text" id="add-loop-cmd2" class="form-control" style="padding:6px; font-size:0.85rem;" placeholder="/back">
-                </div>
-              </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <div class="form-group">
-                  <label style="font-size:0.75rem;">Sıklık (s)</label>
-                  <input type="number" id="add-loop-interval" class="form-control" style="padding:6px; font-size:0.85rem;" value="300">
-                </div>
-                <div class="form-group">
-                  <label style="font-size:0.75rem;">Gecikme (s)</label>
-                  <input type="number" id="add-loop-delay" class="form-control" style="padding:6px; font-size:0.85rem;" value="10">
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button class="btn-add" onclick="addAccount()">Hesabı Listeye Ekle</button>
+          <button class="btn-action save" style="margin-top: 8px; width: 100%;" onclick="addAccount()">Hesabı Kaydet</button>
         </div>
 
-        <!-- Hesap Listesi Kartı -->
         <div class="card" style="flex: 1;">
-          <h3>Hesaplar Listesi</h3>
+          <h3>Hesaplar</h3>
+          <div class="batch-actions">
+            <button class="btn-batch btn-batch-connect" onclick="controlAll('connect-all')">⚡ Tümünü Başlat</button>
+            <button class="btn-batch btn-batch-disconnect" onclick="controlAll('disconnect-all')">🛑 Tümünü Durdur</button>
+          </div>
           <div class="account-list" id="account-list"></div>
         </div>
       </div>
 
-      <!-- Sağ Panel: Tam Ekran Sohbet Kutusu -->
-      <div class="chat-box">
-        <div class="chat-header" id="chat-header-title">Sohbet & Konsol Günlükleri (Hesap Seçilmedi)</div>
-        <div class="chat-messages" id="chat-messages"></div>
-        
-        <!-- TIKLA-DOLDUR SON YAZILAN BALONCUK ALANI (Son 5 Mesaj Listesi) -->
-        <div class="last-sent-container" id="last-sent-container">
-          <span style="color: var(--text-muted); font-size: 0.75rem;">Son Yazılanlar (Tıkla Doldur):</span>
-          <div id="last-sent-bubbles-list" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;"></div>
+      <!-- SAĞ PANEL -->
+      <div class="right-panel">
+        <div class="panel-tabs">
+          <button class="tab-btn active" onclick="switchTab('tab-chat')">💬 Canlı Konsol (Sohbet)</button>
+          <button class="tab-btn" onclick="switchTab('tab-settings')">⚙️ Bot Ayarları</button>
+          <button class="tab-btn" onclick="switchTab('tab-inventory')">🎒 Envanter & Menü</button>
         </div>
 
-        <div class="chat-input-area">
-          <select id="chat-sender" class="chat-select">
-            <option value="all">Tüm Botlar</option>
-          </select>
-          <input type="text" id="chat-input" class="chat-input" placeholder="Seçili bot ile mesaj gönder..." onkeydown="if(event.key === 'Enter') sendMessage()">
-          <button class="btn-send" onclick="sendMessage()">Gönder</button>
+        <!-- Tab 1: Sohbet -->
+        <div id="tab-chat" class="tab-content active">
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input-area">
+            <select id="chat-sender" class="chat-select" onchange="onSenderChange(this.value)"><option value="all">Tüm Botlar</option></select>
+            <input type="text" id="chat-input" class="chat-input" placeholder="Komut / mesaj gönder..." onkeydown="if(event.key === 'Enter') sendMessage()">
+            <button class="btn-send" onclick="sendMessage()">Gönder</button>
+          </div>
         </div>
+
+        <!-- Tab 2: Bot Ayarları -->
+        <div id="tab-settings" class="tab-content">
+          <div class="tab-padding">
+            <div id="settings-no-account" style="color:var(--text-muted); text-align:center; margin-top:50px;">Lütfen ayarlamak için sol listeden bir hesap seçin.</div>
+            
+            <div id="settings-form" class="settings-container" style="display:none;">
+              <!-- Online Kilit Katmanı (Blur Overlay) -->
+              <div id="settings-lock-overlay" class="settings-overlay" style="display:none;">
+                <span style="font-size: 2.2rem; margin-bottom: 8px;">🔒</span>
+                <span style="font-size: 1.05rem; color: #fff;">Ayarları Değiştirmek İçin Bot Çevrimdışı Olmalı</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; max-width: 320px;">
+                  Aktif çalışan botun konfigürasyonunu değiştiremezsiniz. Lütfen önce sol panelden bağlantıyı kesin.
+                </span>
+              </div>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+                <h2 id="settings-bot-name" style="margin:0; font-size:1.1rem; color:#fff;"></h2>
+                <button class="btn-action delete" onclick="deleteSelectedAccount()">Hesabı Sil 🗑️</button>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div class="form-group"><label>Kullanıcı Adı (Nick)</label><input type="text" id="det-edit-user" class="form-control"></div>
+                <div class="form-group"><label>Sürüm</label>
+                  <select id="det-edit-version" class="form-control">
+                    <option value="1.21.11">1.21.11</option>
+                    <option value="1.21.9">1.21.9</option>
+                    <option value="1.21.8">1.21.8</option>
+                    <option value="1.21.6">1.21.6</option>
+                    <option value="1.21.5">1.21.5</option>
+                    <option value="1.21.4">1.21.4</option>
+                    <option value="1.21.3">1.21.3</option>
+                    <option value="1.21.1">1.21.1</option>
+                    <option value="1.21">1.21</option>
+                    <option value="1.20.6">1.20.6</option>
+                    <option value="1.20.5">1.20.5</option>
+                    <option value="1.20.4">1.20.4</option>
+                    <option value="1.20.3">1.20.3</option>
+                    <option value="1.20.2">1.20.2</option>
+                    <option value="1.20.1">1.20.1</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div class="form-group"><label>Sunucu IP</label><input type="text" id="det-edit-host" class="form-control"></div>
+                <div class="form-group"><label>Port</label><input type="number" id="det-edit-port" class="form-control"></div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:10px;"><label>Giriş Komutları (Satır satır)</label><textarea id="det-edit-commands" class="form-control" rows="3"></textarea></div>
+              
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div class="form-group"><label>Oto-Reklam Mesajı</label><input type="text" id="det-edit-broadcast-msg" class="form-control"></div>
+                <div class="form-group"><label>Sıklık (s)</label><input type="number" id="det-edit-broadcast-interval" class="form-control"></div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:10px;"><label>Döngü Komutları (Alt alta)</label><textarea id="det-edit-loop-cmds" class="form-control" rows="3"></textarea></div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div class="form-group"><label>Döngü Sıklık (s)</label><input type="number" id="det-edit-loop-interval" class="form-control"></div>
+                <div class="form-group"><label>Satır Gecikme (s)</label><input type="number" id="det-edit-loop-delay" class="form-control"></div>
+                <div class="form-group"><label>Auto-Restart (dk)</label><input type="number" id="det-edit-restart-mins" class="form-control"></div>
+              </div>
+
+              <button class="btn-action save" style="width:100%; padding:10px;" onclick="saveSelectedChanges()">Değişiklikleri Kaydet</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Envanter & Menüler -->
+        <div id="tab-inventory" class="tab-content">
+          <div class="tab-padding">
+            <div id="inventory-no-account" style="color:var(--text-muted); text-align:center; margin-top:50px;">Lütfen envanterini görmek için sol listeden bir hesap seçin.</div>
+            <div id="inventory-view" style="display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span id="det-status" style="font-weight:600; font-size:0.9rem;"></span>
+                <span id="det-hp" style="font-size:0.85rem; color:var(--text-muted);"></span>
+                <span id="det-pos" style="font-size:0.85rem; color:var(--text-muted); font-family:monospace;"></span>
+              </div>
+
+              <div id="open-window-container" style="display:none; margin-bottom:15px;">
+                <span id="window-title" style="font-size:0.8rem; color:#f59e0b; font-weight:700;"></span>
+                <div class="inventory-grid" id="window-slots-grid"></div>
+              </div>
+
+              <span style="font-size:0.8rem; font-weight:700; color:var(--accent-purple-glow);">🎒 Karakter Çantası</span>
+              <div class="inventory-grid" id="player-inventory-grid"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
-    </div>
-  </div>
-
-  <!-- PROFiL MODAL'I -->
-  <div class="modal-overlay" id="bot-modal" onclick="closeModal()">
-    <div class="modal-card" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeModal()">×</button>
-      <h3 style="color: var(--primary); margin: 0 0 15px 0; border-bottom: 1px solid rgba(189,0,255,0.2); padding-bottom: 5px;" id="det-title">Profil Kartı</h3>
-      
-      <!-- Özet Durum Satırı -->
-      <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
-        <img id="det-avatar" src="https://mc-heads.net/avatar/char" style="width:55px; height:50px; border-radius:6px; border:2px solid var(--primary); image-rendering: pixelated;">
-        <div>
-          <p id="det-status" style="margin:2px 0; font-weight:bold;"><span class="badge badge-offline">ÇEVRİMDIŞI 🔴</span></p>
-          <p id="det-hp" style="margin:2px 0; font-size:0.9rem;">Can: - | Açlık: -</p>
-          <p id="det-pos" style="margin:2px 0; font-size:0.85rem; color:var(--text-muted)">X: - | Y: - | Z: -</p>
-        </div>
-      </div>
-      
-      <!-- Düzenlenebilir Form Alanları -->
-      <div style="border-top: 1px dashed rgba(189,20,255,0.15); padding-top: 12px; margin-bottom: 12px;">
-        <p id="edit-lock-notice" style="color: #ffeb3b; font-size: 0.75rem; margin: 0 0 10px 0; display: none;">⚠️ Bot aktif olduğu için ayarlar düzenlemeye kapalıdır.</p>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-          <div class="form-group">
-            <label style="font-size: 0.75rem;">Kullanıcı Adı (Nick)</label>
-            <input type="text" id="det-edit-user" class="form-control" style="font-size:0.85rem; padding: 6px;">
-          </div>
-          <div class="form-group">
-            <label style="font-size: 0.75rem;">Sürüm</label>
-            <select id="det-edit-version" class="form-control" style="font-size:0.85rem; padding: 4px;">
-              <option value="1.21.11">1.21.11</option>
-              <option value="1.21.9">1.21.9</option>
-              <option value="1.21.8">1.21.8</option>
-              <option value="1.21.6">1.21.6</option>
-              <option value="1.21.5">1.21.5</option>
-              <option value="1.21.4">1.21.4</option>
-              <option value="1.21.3">1.21.3</option>
-              <option value="1.21.1">1.21.1</option>
-              <option value="1.21">1.21</option>
-              <option value="1.20.6">1.20.6</option>
-              <option value="1.20.5">1.20.5</option>
-              <option value="1.20.4">1.20.4</option>
-              <option value="1.20.3">1.20.3</option>
-              <option value="1.20.2">1.20.2</option>
-              <option value="1.20.1">1.20.1</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 8px;">
-          <div class="form-group">
-            <label style="font-size: 0.75rem;">Sunucu IP</label>
-            <input type="text" id="det-edit-host" class="form-control" style="font-size:0.85rem; padding: 6px;">
-          </div>
-          <div class="form-group">
-            <label style="font-size: 0.75rem;">Port</label>
-            <input type="number" id="det-edit-port" class="form-control" style="font-size:0.85rem; padding: 6px;">
-          </div>
-        </div>
-
-        <!-- Katlanabilir Otomasyon Düzenleme Başlığı -->
-        <button class="toggle-advanced-btn" onclick="toggleEditAdvanced()" style="padding: 4px; font-size: 0.75rem; margin-bottom: 8px;">⚙️ Otomasyon Ayarlarını Düzenle</button>
-
-        <div id="det-edit-advanced-section" style="display: none; border-top: 1px solid rgba(189,20,255,0.1); padding-top: 8px;">
-          <div class="form-group" style="margin-bottom: 8px;">
-            <label style="font-size: 0.72rem; color:var(--text-muted);">Giriş Komutları (Satır satır)</label>
-            <textarea id="det-edit-commands" class="form-control" rows="2" style="font-size:0.8rem; font-family: monospace;"></textarea>
-          </div>
-          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 8px;">
-            <div class="form-group">
-              <label style="font-size: 0.72rem; color:var(--text-muted);">Oto-Reklam Mesajı</label>
-              <input type="text" id="det-edit-broadcast-msg" class="form-control" style="font-size:0.85rem; padding: 6px;">
-            </div>
-            <div class="form-group">
-              <label style="font-size: 0.72rem; color:var(--text-muted);">Sıklık (s)</label>
-              <input type="number" id="det-edit-broadcast-interval" class="form-control" style="font-size:0.85rem; padding: 6px;">
-            </div>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-            <div class="form-group">
-              <label style="font-size: 0.72rem; color:var(--text-muted);">Döngü Komut 1</label>
-              <input type="text" id="det-edit-loop-cmd1" class="form-control" style="font-size:0.85rem; padding: 6px;">
-            </div>
-            <div class="form-group">
-              <label style="font-size: 0.72rem; color:var(--text-muted);">Döngü Komut 2</label>
-              <input type="text" id="det-edit-loop-cmd2" class="form-control" style="font-size:0.85rem; padding: 6px;">
-            </div>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div class="form-group">
-              <label style="font-size: 0.72rem; color:var(--text-muted);">Döngü Sıklık (s)</label>
-              <input type="number" id="det-edit-loop-interval" class="form-control" style="font-size:0.85rem; padding: 6px;">
-            </div>
-            <div class="form-group">
-              <label style="font-size: 0.72rem; color:var(--text-muted);">Gecikme (s)</label>
-              <input type="number" id="det-edit-loop-delay" class="form-control" style="font-size:0.85rem; padding: 6px;">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-        <button class="btn-connect" onclick="actionSelected('connect')">Bağlan</button>
-        <button class="btn-disconnect" onclick="actionSelected('disconnect')">Bağlantı Kes</button>
-        <button class="btn-afk" onclick="actionSelected('toggle-afk')">AFK Değiştir</button>
-        <button class="btn-respawn" onclick="actionSelected('respawn')">Yeniden Doğ</button>
-      </div>
-
-      <!-- Değişiklikleri Kaydet Butonu -->
-      <button class="btn-save" id="btn-det-save" onclick="saveSelectedChanges()">Değişiklikleri Kaydet</button>
     </div>
   </div>
 
@@ -537,118 +358,71 @@
     let localStatusData = {}; 
     let chatHistories = {};
     let renderedUsernames = [];
-    
-    // [YENİ]: Son gönderilen 5 mesajı hafızada tuttuğumuz dizi
-    let lastSentMessages = [];
 
-    // Discord Tarzı Renkli Chat Parser'ı
-    function formatChatLine(text) {
-      let tagClass = 'tag-server';
-      let tagIcon = '💬';
-      let tagText = 'Sunucu';
-
-      if (text.startsWith('[Sistem]')) {
-        tagClass = 'tag-system'; tagIcon = '⚙️'; tagText = 'Sistem';
-        text = text.replace('[Sistem] ', '');
-      } else if (text.startsWith('[Hata]')) {
-        tagClass = 'tag-error'; tagIcon = '⚠️'; tagText = 'Hata';
-        text = text.replace('[Hata] ', '');
-      } else if (text.startsWith('[Proxy Hatası]')) {
-        tagClass = 'tag-error'; tagIcon = '⚠️'; tagText = 'Proxy';
-        text = text.replace('[Proxy Hatası] ', '');
-      } else if (text.startsWith('[Oto-Giriş]')) {
-        tagClass = 'tag-login'; tagIcon = '🤖'; tagText = 'Giriş';
-        text = text.replace('[Oto-Giriş]: ', '');
-      } else if (text.startsWith('[Oto-Reklam]')) {
-        tagClass = 'tag-ad'; tagIcon = '📢'; tagText = 'Reklam';
-        text = text.replace('[Oto-Reklam]: ', '');
-      } else if (text.startsWith('[Oto-Döngü]')) {
-        tagClass = 'tag-loop'; tagIcon = '🔁'; tagText = 'Döngü';
-        text = text.replace('[Oto-Döngü]: ', '').replace('[Oto-Döngü Gecikmeli]: ', '');
-      }
-
-      if (text.startsWith('[Sunucu]:')) {
-        text = text.replace('[Sunucu]: ', '');
-      }
-
-      // Oyuncu isimlerini altın sarısı, mesajları yumuşak beyaz yapar
-      text = text.replace(/^&lt;([^&]+)&gt;(.*)$/, '<span style="color: #ffeb3b; font-weight: bold; text-shadow: 0 0 5px rgba(255,235,59,0.2);">&lt;$1&gt;</span><span style="color: #e2d9f3;">$2</span>');
-      text = text.replace(/^([^:\s]+): (.*)$/, '<span style="color: #ffeb3b; font-weight: bold; text-shadow: 0 0 5px rgba(255,235,59,0.2);">$1:</span> <span style="color: #e2d9f3;">$2</span>');
-
-      return '<span class="chat-tag ' + tagClass + '">' + tagIcon + ' ' + tagText + '</span><span class="chat-text">' + text + '</span>';
+    // Native Alert yerine Odaklanmayı Bozmayan Toast Mesajı
+    function showToast(msg) {
+      const toast = document.getElementById('toast-msg');
+      document.getElementById('toast-text').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
-    function appendLogToScreen(text, type = 'server') {
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function formatChatLine(text) {
+      let tagClass = 'tag-server', tagText = 'Sunucu';
+      if (text.startsWith('[Sistem]')) { tagClass = 'tag-system'; tagText = 'Sistem'; text = text.replace('[Sistem] ', ''); }
+      else if (text.startsWith('[Hata]')) { tagClass = 'tag-error'; tagText = 'Hata'; text = text.replace('[Hata] ', ''); }
+      else if (text.startsWith('[Oto-Giriş]')) { tagClass = 'tag-login'; tagText = 'Giriş'; text = text.replace('[Oto-Giriş]: ', ''); }
+      else if (text.startsWith('[Oto-Reklam]')) { tagClass = 'tag-ad'; tagText = 'Reklam'; text = text.replace('[Oto-Reklam]: ', ''); }
+      else if (text.startsWith('[Oto-Döngü]')) { tagClass = 'tag-loop'; tagText = 'Döngü'; text = text.replace('[Oto-Döngü]: ', ''); }
+
+      text = text.replace(/^&lt;([^&]+)&gt;(.*)$/, '<span style="color: var(--accent-purple-glow); font-weight: 600;">&lt;$1&gt;</span><span>$2</span>');
+      text = text.replace(/^([^:\s]+): (.*)$/, '<span style="color: var(--accent-purple-glow); font-weight: 600;">$1:</span> <span>$2</span>');
+
+      return `<span class="chat-tag ${tagClass}">${tagText}</span><span class="chat-text">${text}</span>`;
+    }
+
+    function appendLogToScreen(text) {
       const div = document.createElement('div');
       div.className = 'log-entry';
       div.innerHTML = formatChatLine(text);
       
-      const isScrolledToBottom = chatMessages.scrollHeight - chatMessages.clientHeight <= chatMessages.scrollTop + 60;
+      const isScrolled = chatMessages.scrollHeight - chatMessages.clientHeight <= chatMessages.scrollTop + 60;
       chatMessages.appendChild(div);
-      
-      if (isScrolledToBottom) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      }
+
+      if (chatMessages.children.length > 150) chatMessages.removeChild(chatMessages.firstChild);
+      if (isScrolled) chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function addLogToHistory(botName, text, type = 'server') {
-      if (!chatHistories[botName]) {
-        chatHistories[botName] = [];
-      }
-      chatHistories[botName].push({ text, type });
-
-      if (chatHistories[botName].length > 150) {
-        chatHistories[botName].shift();
-      }
-
-      if (selectedUsername === botName) {
-        appendLogToScreen(text, type);
-      }
+    function addLogToHistory(botName, text) {
+      if (!chatHistories[botName]) chatHistories[botName] = [];
+      chatHistories[botName].push({ text });
+      if (chatHistories[botName].length > 150) chatHistories[botName].shift();
+      if (selectedUsername === botName) appendLogToScreen(text);
     }
 
-    function toggleAdvanced() {
-      const section = document.getElementById('advanced-section');
-      section.style.display = section.style.display === 'block' ? 'none' : 'block';
+    function toggleAdvanced() { const s = document.getElementById('advanced-section'); s.style.display = s.style.display === 'block' ? 'none' : 'block'; }
+
+    async function controlAll(action) {
+      await fetch('/api/control-all', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
     }
 
-    function toggleEditAdvanced() {
-      const section = document.getElementById('det-edit-advanced-section');
-      section.style.display = section.style.display === 'block' ? 'none' : 'block';
+    async function quickControl(username, action, event) {
+      event.stopPropagation();
+      selectAccount(username);
+      await fetch('/api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, action }) });
     }
 
-    function closeModal() {
-      document.getElementById('bot-modal').style.display = 'none';
-    }
-
-    // [YENİ]: Seçilen mesaja tıklandığında giriş kutusuna dolduran fonksiyon
-    function recallMessage(msg) {
-      const input = document.getElementById('chat-input');
-      input.value = msg;
-      input.focus(); // İmleci otomatik kutunun içine odaklar
-    }
-
-    // [YENİ]: Son gönderilen 5 mesajın baloncuk listesini ekrana çizen fonksiyon
-    function renderLastSentBubbles() {
-      const container = document.getElementById('last-sent-container');
-      const listDiv = document.getElementById('last-sent-bubbles-list');
-      
-      if (lastSentMessages.length === 0) {
-        container.style.display = 'none';
-        return;
-      }
-
-      container.style.display = 'flex';
-      listDiv.innerHTML = ''; // Eski listeyi temizle
-
-      lastSentMessages.forEach(function(msg) {
-        const span = document.createElement('span');
-        span.className = 'last-sent-bubble';
-        span.textContent = msg;
-        span.onclick = function() {
-          recallMessage(msg);
-        };
-        listDiv.appendChild(span);
-      });
+    async function clickWindowSlot(slot) {
+      if (!selectedUsername) return;
+      await fetch('/api/window/click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: selectedUsername, slot }) });
     }
 
     async function addAccount() {
@@ -656,160 +430,93 @@
       const host = document.getElementById('add-host').value.trim();
       const port = parseInt(document.getElementById('add-port').value);
       const version = document.getElementById('add-version').value; 
-      
       const commands = document.getElementById('add-commands').value;
       const broadcastMsg = document.getElementById('add-broadcast-msg').value.trim();
       const broadcastInterval = parseInt(document.getElementById('add-broadcast-interval').value) || 300;
-
-      const loopCmd1 = document.getElementById('add-loop-cmd1').value.trim();
-      const loopCmd2 = document.getElementById('add-loop-cmd2').value.trim();
+      const loopCmds = document.getElementById('add-loop-cmds').value;
       const loopInterval = parseInt(document.getElementById('add-loop-interval').value) || 300;
       const loopDelay = parseInt(document.getElementById('add-loop-delay').value) || 10;
+      const autoRestartMins = parseInt(document.getElementById('add-restart-mins').value) || 0;
 
-      if (!username || !host) {
-        alert('Kullanıcı adı ve Sunucu IP boş bırakılamaz.');
-        return;
-      }
+      if (!username || !host) return showToast('Kullanıcı adı ve IP boş kalamaz.');
 
       const res = await fetch('/api/accounts/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username, host, port, version, commands, broadcastMsg, broadcastInterval,
-          loopCmd1, loopCmd2, loopInterval, loopDelay
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmds, loopInterval, loopDelay, autoRestartMins })
       });
       const data = await res.json();
       if (data.success) {
         document.getElementById('add-user').value = '';
-        document.getElementById('add-commands').value = '';
-        document.getElementById('add-broadcast-msg').value = '';
-        document.getElementById('add-loop-cmd1').value = '';
-        document.getElementById('add-loop-cmd2').value = '';
-        
-        chatHistories[username] = [];
-        addLogToHistory(username, '[Sistem] Hesap oluşturuldu ve listeye eklendi: ' + username, 'system');
-        
-        renderedUsernames = []; 
-      } else {
-        alert(data.error || 'Hesap eklenirken bir hata oluştu.');
-      }
+        renderedUsernames = [];
+      } else showToast(data.error);
     }
 
     async function saveSelectedChanges() {
       if (!selectedUsername) return;
-
       const payload = {
         originalUsername: selectedUsername,
         username: document.getElementById('det-edit-user').value.trim(),
-        version: document.getElementById('det-edit-version').value, 
+        version: document.getElementById('det-edit-version').value,
         host: document.getElementById('det-edit-host').value.trim(),
         port: parseInt(document.getElementById('det-edit-port').value) || 25565,
         commands: document.getElementById('det-edit-commands').value,
         broadcastMsg: document.getElementById('det-edit-broadcast-msg').value.trim(),
         broadcastInterval: parseInt(document.getElementById('det-edit-broadcast-interval').value) || 300,
-        loopCmd1: document.getElementById('det-edit-loop-cmd1').value.trim(),
-        loopCmd2: document.getElementById('det-edit-loop-cmd2').value.trim(),
+        loopCmds: document.getElementById('det-edit-loop-cmds').value,
         loopInterval: parseInt(document.getElementById('det-edit-loop-interval').value) || 300,
-        loopDelay: parseInt(document.getElementById('det-edit-loop-delay').value) || 10
+        loopDelay: parseInt(document.getElementById('det-edit-loop-delay').value) || 10,
+        autoRestartMins: parseInt(document.getElementById('det-edit-restart-mins').value) || 0
       };
 
-      if (!payload.username || !payload.host) {
-        alert('Kullanıcı adı ve Sunucu IP boş bırakılamaz.');
-        return;
-      }
-
-      const res = await fetch('/api/accounts/edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const res = await fetch('/api/accounts/edit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
+      if (data.success) {
+        renderedUsernames = [];
+      } else showToast(data.error);
+    }
+
+    async function deleteSelectedAccount() {
+      if (!selectedUsername) return;
       
-      if (data.success) {
-        if (!localStatusData[payload.username]) {
-          localStatusData[payload.username] = {};
-        }
-        localStatusData[payload.username].version = payload.version;
-        localStatusData[payload.username].host = payload.host;
-        localStatusData[payload.username].port = payload.port;
-        localStatusData[payload.username].commands = payload.commands;
-        localStatusData[payload.username].broadcastMsg = payload.broadcastMsg;
-        localStatusData[payload.username].broadcastInterval = payload.broadcastInterval;
-        localStatusData[payload.username].loopCmd1 = payload.loopCmd1;
-        localStatusData[payload.username].loopCmd2 = payload.loopCmd2;
-        localStatusData[payload.username].loopInterval = payload.loopInterval;
-        localStatusData[payload.username].loopDelay = payload.loopDelay;
-
-        appendLogToScreen('[Sistem] Profil ayarları başarıyla güncellendi.', 'system');
-        
-        if (payload.username !== selectedUsername) {
-          chatHistories[payload.username] = chatHistories[selectedUsername] || [];
-          delete chatHistories[selectedUsername];
-          delete localStatusData[selectedUsername]; 
-          selectedUsername = payload.username;
-        }
-        
-        renderedUsernames = [];
-        selectAccount(selectedUsername);
-        closeModal(); 
-      } else {
-        alert(data.error || 'Profil güncellenirken bir hata oluştu.');
-      }
-    }
-
-    async function deleteAccount(username, event) {
-      event.stopPropagation(); 
-      if (!confirm(username + ' hesabını silmek istiyor musunuz?')) return;
-
-      const res = await fetch('/api/accounts/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
-      });
+      const res = await fetch('/api/accounts/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: selectedUsername }) });
       const data = await res.json();
       if (data.success) {
-        delete chatHistories[username]; 
-        if (selectedUsername === username) {
-          selectedUsername = null;
-          closeModal();
-        }
-        renderedUsernames = [];
-      } else {
-        alert(data.error || 'Hesap silinirken bir hata oluştu.');
-      }
+        delete chatHistories[selectedUsername]; 
+        delete localStatusData[selectedUsername];
+        
+        document.getElementById('settings-no-account').style.display = 'block';
+        document.getElementById('settings-form').style.display = 'none';
+        document.getElementById('inventory-no-account').style.display = 'block';
+        document.getElementById('inventory-view').style.display = 'none';
+        
+        selectedUsername = null;
+        renderedUsernames = []; // Tracker sıfırlandı, çizimi SSE'ye bıraktık (Flicker engellendi)
+      } else showToast(data.error);
     }
 
-    // Listeden bir hesaba tıklandığında: Sohbeti açar, modali tetikler
-    function selectAccount(username, isExplicitClick = true) {
-      if (selectedUsername === username && isExplicitClick && document.getElementById('bot-modal').style.display === 'flex') {
-        closeModal();
-        return;
-      }
-
+    function selectAccount(username) {
       selectedUsername = username;
-      document.getElementById('det-title').textContent = username + ' - Profil Kartı';
-      document.getElementById('det-avatar').src = 'https://mc-heads.net/avatar/' + username;
-      document.getElementById('chat-header-title').textContent = username + ' - Sohbet & Konsol Günlükleri';
       
       document.querySelectorAll('.account-row').forEach(row => {
-        row.classList.remove('selected');
+        if (row.getAttribute('data-username') === username) {
+          row.classList.add('selected');
+        } else {
+          row.classList.remove('selected');
+        }
       });
-      const selectedRow = document.getElementById('acc-row-' + username);
-      if (selectedRow) {
-        selectedRow.classList.add('selected');
-      }
 
-      chatMessages.innerHTML = '';
-      const history = chatHistories[username] || [];
-      history.forEach(log => {
-        appendLogToScreen(log.text, log.type);
-      });
+      document.getElementById('settings-no-account').style.display = 'none';
+      document.getElementById('settings-form').style.display = 'block';
+      document.getElementById('settings-bot-name').textContent = username + ' - Bot Ayarları';
+
+      document.getElementById('inventory-no-account').style.display = 'none';
+      document.getElementById('inventory-view').style.display = 'block';
 
       const senderSelect = document.getElementById('chat-sender');
-      if (senderSelect) {
-        senderSelect.value = username;
-      }
+      if (senderSelect) senderSelect.value = username;
+
+      chatMessages.innerHTML = '';
+      (chatHistories[username] || []).forEach(log => appendLogToScreen(log.text));
 
       const s = localStatusData[username];
       if (s) {
@@ -820,236 +527,159 @@
         document.getElementById('det-edit-commands').value = s.commands || '';
         document.getElementById('det-edit-broadcast-msg').value = s.broadcastMsg || '';
         document.getElementById('det-edit-broadcast-interval').value = s.broadcastInterval || 300;
-        document.getElementById('det-edit-loop-cmd1').value = s.loopCmd1 || '';
-        document.getElementById('det-edit-loop-cmd2').value = s.loopCmd2 || '';
+        document.getElementById('det-edit-loop-cmds').value = s.loopCmds || '';
         document.getElementById('det-edit-loop-interval').value = s.loopInterval || 300;
         document.getElementById('det-edit-loop-delay').value = s.loopDelay || 10;
-      }
-
-      updateDetailUI();
-
-      if (isExplicitClick) {
-        document.getElementById('bot-modal').style.display = 'flex';
+        document.getElementById('det-edit-restart-mins').value = s.autoRestartMins || 0;
       }
     }
 
-    // [Gelişmiş Sohbet Sekmesi Seçici]
-    document.getElementById('chat-sender').onchange = function() {
-      const val = this.value;
-      if (val && val !== 'all') {
-        selectAccount(val, false); 
+    function onSenderChange(val) {
+      if (val !== 'all') {
+        selectAccount(val);
       }
-    };
-
-    async function actionSelected(action) {
-      if (!selectedUsername) return;
-      await fetch('/api/control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: selectedUsername, action })
-      });
     }
 
     async function sendMessage() {
       const input = document.getElementById('chat-input');
       const message = input.value.trim();
       const sender = document.getElementById('chat-sender').value;
-
       if (!message) return;
       input.value = '';
 
-      // [YENİ]: Gönderilen mesajı son 5 mesaj listesine ekliyoruz (Tekrar edenleri eliyoruz)
-      lastSentMessages = lastSentMessages.filter(m => m !== message);
-      lastSentMessages.unshift(message); // En başa ekle
-      if (lastSentMessages.length > 5) {
-        lastSentMessages.pop(); // Son elemanı sil (maksimum 5 adet tut)
-      }
-      renderLastSentBubbles(); // Baloncukları yeniden çizdir
+      if (sender === 'all') Object.keys(chatHistories).forEach(usr => addLogToHistory(usr, '[Sen]: ' + message));
+      else addLogToHistory(sender, '[Sen]: ' + message);
 
-      if (sender === 'all') {
-        Object.keys(chatHistories).forEach(usr => {
-          addLogToHistory(usr, '[Sen]: ' + message, 'system');
-        });
-      } else {
-        addLogToHistory(sender, '[Sen]: ' + message, 'system');
-      }
-
-      await fetch('/api/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, sender })
-      });
-    }
-
-    function updateDetailUI() {
-      if (!selectedUsername || !localStatusData[selectedUsername]) {
-        const txtStatus = document.getElementById('det-status');
-        if (txtStatus) txtStatus.innerHTML = '<span class="badge badge-offline">SEÇİLMEDİ 🔴</span>';
-        
-        const txtHp = document.getElementById('det-hp');
-        if (txtHp) txtHp.textContent = 'Can: - | Açlık: -';
-        
-        const txtPos = document.getElementById('det-pos');
-        if (txtPos) txtPos.textContent = 'X: - | Y: - | Z: -';
-        
-        setEditFormDisabled(true);
-        return;
-      }
-
-      const s = localStatusData[selectedUsername];
-      const txtStatus = document.getElementById('det-status');
-      const txtHp = document.getElementById('det-hp');
-      const txtPos = document.getElementById('det-pos');
-
-      setEditFormDisabled(s.online || s.connecting);
-
-      if (s.online) {
-        if (txtStatus) txtStatus.innerHTML = '<span class="badge badge-online">ÇEVRİMİÇİ 🟢</span>';
-        if (txtHp) txtHp.textContent = '❤️ Can: ' + s.health + ' | 🍗 Açlık: ' + s.food;
-        if (txtPos) txtPos.textContent = 'X: ' + s.pos.x + ' | Y: ' + s.pos.y + ' | Z: ' + s.pos.z;
-      } else {
-        if (txtStatus) txtStatus.innerHTML = s.connecting ? '<span class="badge badge-connecting">BAĞLANILIYOR... 🟡</span>' : '<span class="badge badge-offline">ÇEVRİMDIŞI 🔴</span>';
-        if (txtHp) txtHp.textContent = 'Can: - | Açlık: -';
-        if (txtPos) txtPos.textContent = 'X: - | Y: - | Z: -';
-      }
-    }
-
-    function setEditFormDisabled(disabled) {
-      const lockNotice = document.getElementById('edit-lock-notice');
-      const saveBtn = document.getElementById('btn-det-save');
-      
-      if (lockNotice) lockNotice.style.display = disabled && selectedUsername && localStatusData[selectedUsername].online ? 'block' : 'none';
-      if (saveBtn) saveBtn.style.display = disabled ? 'none' : 'block';
-
-      const fields = [
-        'det-edit-user', 'det-edit-version', 'det-edit-host', 'det-edit-port',
-        'det-edit-commands', 'det-edit-broadcast-msg', 'det-edit-broadcast-interval',
-        'det-edit-loop-cmd1', 'det-edit-loop-cmd2', 'det-edit-loop-interval', 'det-edit-loop-delay'
-      ];
-      fields.forEach(function(id) {
-        const el = document.getElementById(id);
-        if (el) el.disabled = disabled;
-      });
+      await fetch('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, sender }) });
     }
 
     const eventSource = new EventSource('/api/stream');
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
-
-      if (data.type === 'chat') {
-        addLogToHistory(data.bot, data.text, 'server');
-      } 
+      if (data.type === 'chat') addLogToHistory(data.bot, data.text);
       else if (data.type === 'status_all') {
         localStatusData = data.statuses;
-        
         const listDiv = document.getElementById('account-list');
         const activeUsernames = Object.keys(localStatusData);
-        
-        const isListChanged = JSON.stringify(activeUsernames.sort()) !== JSON.stringify(renderedUsernames.sort());
 
+        // Hiç hesap kalmadığında listeyi temizle
         if (activeUsernames.length === 0) {
-          listDiv.innerHTML = '<p style="color:var(--text-muted); text-align:center; margin-top:40px; font-size:0.9rem; line-height:1.4;">Henüz bir hesap eklenmedi.<br>Başlamak için yukarıdaki formu kullanın.</p>';
-          selectedUsername = null;
           renderedUsernames = [];
-          closeModal();
-        } 
-        else if (isListChanged) {
+          listDiv.innerHTML = '';
+          return;
+        }
+
+        if (JSON.stringify(activeUsernames.sort()) !== JSON.stringify(renderedUsernames.sort())) {
           renderedUsernames = [...activeUsernames];
-          listDiv.innerHTML = ''; 
-
-          activeUsernames.forEach(function(usr) {
+          listDiv.innerHTML = '';
+          
+          activeUsernames.forEach(usr => {
             const s = localStatusData[usr];
-            const isSelected = selectedUsername === usr ? 'selected' : '';
-
-            if (!chatHistories[usr]) {
-              chatHistories[usr] = [];
-            }
-
             const row = document.createElement('div');
-            row.className = 'account-row ' + isSelected;
-            row.id = 'acc-row-' + usr;
-            
-            row.onclick = function() {
-              selectAccount(usr, true);
-            };
+            row.className = 'account-row' + (selectedUsername === usr ? ' selected' : '');
+            row.setAttribute('data-username', usr);
+            row.onclick = () => selectAccount(usr);
 
-            let statusBadgeText = '<span class="badge badge-offline">Çevrimdışı</span>';
-            if (s.online) statusBadgeText = '<span class="badge badge-online">Çevrimiçi</span>';
-            else if (s.connecting) statusBadgeText = '<span class="badge badge-connecting">Bağlanıyor</span>';
+            const statusClass = s.online ? 'online' : (s.connecting ? 'connecting' : 'offline');
 
-            const automationLabel = s.hasAutoBroadcaster || s.hasAutoLoop ? '<br><span style="font-size:0.7rem; color:#ffeb3b">📢 Otomasyon Aktif</span>' : '';
-
-            row.innerHTML = '<div class="acc-info">' +
-                              '<img class="acc-avatar" src="https://mc-heads.net/avatar/' + usr + '">' +
-                              '<div>' +
-                                '<span style="font-weight:bold;">' + usr + '</span><br>' +
-                                '<span style="font-size:0.75rem; color:var(--text-muted)">' + s.host + ':' + s.port + '</span>' +
-                                automationLabel +
-                              '</div>' +
-                            '</div>' +
-                            '<div style="display:flex; align-items:center; gap:8px;">' +
-                              '<span id="badge-' + usr + '" class="badge ' + (s.online ? 'badge-online' : (s.connecting ? 'badge-connecting' : 'badge-offline')) + '">' +
-                                (s.online ? 'Çevrimiçi' : (s.connecting ? 'Bağlanıyor' : 'Çevrimdışı')) +
-                              '</span>' +
-                              '<button class="btn-delete" id="del-btn-' + usr + '">Sil</button>' +
-                            '</div>';
-
+            row.innerHTML = `
+              <div class="acc-left">
+                <div class="status-dot ${statusClass}"></div>
+                <img class="acc-avatar" src="https://mc-heads.net/avatar/${usr}">
+                <div class="acc-details">
+                  <span class="acc-name">${usr}</span>
+                  <span class="acc-server">${s.host}:${s.port}</span>
+                </div>
+              </div>
+              <div class="btn-group-quick">
+                <button class="btn-icon-only connect" title="Bağlan" onclick="quickControl('${usr}', 'connect', event)">▶</button>
+                <button class="btn-icon-only disconnect" title="Bağlantıyı Kes" onclick="quickControl('${usr}', 'disconnect', event)">⏹</button>
+              </div>
+            `;
             listDiv.appendChild(row);
-
-            const delBtn = document.getElementById('del-btn-' + usr);
-            if (delBtn) {
-              delBtn.onclick = function(event) {
-                deleteAccount(usr, event);
-              };
-            }
           });
         }
 
-        // Sol listedeki hesap satırlarının badge (durum) etiketlerini her saniye canlı güncelliyoruz! (IP Kilit Bug Çözüldü!)
-        activeUsernames.forEach(function(usr) {
+        activeUsernames.forEach(usr => {
           const s = localStatusData[usr];
-          const badge = document.getElementById('badge-' + usr);
-          
-          if (badge) {
-            badge.className = 'badge ' + (s.online ? 'badge-online' : (s.connecting ? 'badge-connecting' : 'badge-offline'));
-            badge.textContent = s.online ? 'Çevrimiçi' : (s.connecting ? 'Bağlanıyor' : 'Çevrimdışı');
-          }
-          
-          if (selectedUsername === usr && document.getElementById('bot-modal').style.display === 'flex') {
-            const txtStatus = document.getElementById('det-status');
-            const txtHp = document.getElementById('det-hp');
-            const txtPos = document.getElementById('det-pos');
-            
-            if (txtStatus) {
-              txtStatus.innerHTML = s.online ? '<span class="badge badge-online">ÇEVRİMİÇİ 🟢</span>' : (s.connecting ? '<span class="badge badge-connecting">BAĞLANILIYOR... 🟡</span>' : '<span class="badge badge-offline">ÇEVRİMDIŞI 🔴</span>');
+          const row = document.querySelector(`.account-row[data-username="${usr}"]`);
+          if (row) {
+            const dot = row.querySelector('.status-dot');
+            if (dot) {
+              const targetClass = `status-dot ${s.online ? 'online' : (s.connecting ? 'connecting' : 'offline')}`;
+              if (dot.className !== targetClass) {
+                dot.className = targetClass;
+              }
             }
-            if (txtHp) {
-              txtHp.textContent = s.online ? '❤️ Can: ' + s.health + ' | 🍗 Açlık: ' + s.food : 'Can: - | Açlık: -';
-            }
-            if (txtPos) {
-              txtPos.textContent = s.online ? 'X: ' + s.pos.x + ' | Y: ' + s.pos.y + ' | Z: ' + s.pos.z : 'X: - | Y: - | Z: -';
+
+            if (selectedUsername === usr) {
+              row.classList.add('selected');
+            } else {
+              row.classList.remove('selected');
             }
           }
         });
 
         const senderSelect = document.getElementById('chat-sender');
-        const currentSelection = senderSelect.value;
-        
+        const currentVal = senderSelect.value;
         senderSelect.innerHTML = '<option value="all">Tüm Botlar</option>';
         activeUsernames.forEach(usr => {
-          const s = localStatusData[usr];
-          if (s.online) {
+          if (localStatusData[usr].online) {
             const opt = document.createElement('option');
             opt.value = usr;
             opt.textContent = usr;
             senderSelect.appendChild(opt);
           }
         });
-        senderSelect.value = currentSelection;
+        
+        if (currentVal && (currentVal === 'all' || activeUsernames.includes(currentVal))) {
+          senderSelect.value = currentVal;
+        } else if (selectedUsername) {
+          senderSelect.value = selectedUsername;
+        }
 
-        if (selectedUsername) {
-          updateDetailUI();
+        if (selectedUsername && localStatusData[selectedUsername]) {
+          const s = localStatusData[selectedUsername];
+          
+          const lockOverlay = document.getElementById('settings-lock-overlay');
+          if (lockOverlay) {
+            lockOverlay.style.display = s.online ? 'flex' : 'none';
+          }
+
+          document.getElementById('det-status').innerHTML = s.online ? '<span style="color:#10b981;">● ÇEVRİMİÇİ</span>' : '<span style="color:#ef4444;">● ÇEVRİMDIŞI</span>';
+          document.getElementById('det-hp').textContent = s.online ? `❤️ Can: ${s.health} | 🍗 Açlık: ${s.food}` : 'Can: - | Açlık: -';
+          document.getElementById('det-pos').textContent = s.online ? `X: ${s.pos.x} | Y: ${s.pos.y} | Z: ${s.pos.z}` : 'X: - | Y: - | Z: -';
+
+          const invGrid = document.getElementById('player-inventory-grid');
+          invGrid.innerHTML = '';
+          (s.inventory || []).forEach(item => {
+            const slotDiv = document.createElement('div');
+            slotDiv.className = 'inv-slot';
+            slotDiv.innerHTML = `<span>${item.name.substring(0, 8)}</span><span class="inv-count">${item.count}</span>`;
+            invGrid.appendChild(slotDiv);
+          });
+
+          const windowContainer = document.getElementById('open-window-container');
+          const windowGrid = document.getElementById('window-slots-grid');
+          if (s.openWindow) {
+            windowContainer.style.display = 'block';
+            document.getElementById('window-title').textContent = 'Açık Menü: ' + s.openWindow.title;
+            windowGrid.innerHTML = '';
+            s.openWindow.slots.forEach((item, idx) => {
+              const slotDiv = document.createElement('div');
+              slotDiv.className = 'inv-slot';
+              if (item) {
+                slotDiv.innerHTML = `<span>${item.name.substring(0, 8)}</span><span class="inv-count">${item.count}</span>`;
+                slotDiv.onclick = () => clickWindowSlot(idx);
+              } else {
+                slotDiv.innerHTML = `<span style="color:#374151;">-</span>`;
+              }
+              windowGrid.appendChild(slotDiv);
+            });
+          } else {
+            windowContainer.style.display = 'none';
+          }
         }
       }
     };

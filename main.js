@@ -1,8 +1,7 @@
 // ======================================================
-// LUNKE BOT - STANDALONE DESKTOP AFK CLIENT (v1.0.0)
+// LUNKE BOT - STANDALONE DESKTOP AFK CLIENT (v1.2.0)
 // ======================================================
 
-// [GÜVENLİK] Beklenmedik hatalarda çökmeyi engeller
 process.on('uncaughtException', (err) => {
   console.log(`\n[Çökme Engellendi] Beklenmedik Hata: ${err.message}`);
 });
@@ -18,7 +17,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ACCOUNTS_FILE = path.join(electronApp.getPath('userData'), 'accounts.json'); // Verileri Windows kullanıcı verilerine kaydeder
+const ACCOUNTS_FILE = path.join(electronApp.getPath('userData'), 'accounts.json');
 
 let accounts = [];
 let activeBots = {}; 
@@ -29,7 +28,6 @@ let isQuitting = false;
 
 app.use(express.json());
 
-// Hesapları diskten oku veya oluştur
 function loadAccounts() {
   try {
     if (fs.existsSync(ACCOUNTS_FILE)) {
@@ -43,7 +41,6 @@ function loadAccounts() {
   }
 }
 
-// Hesapları diske kaydet
 function saveAccounts(data) {
   try {
     fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(data, null, 2), 'utf8');
@@ -52,12 +49,10 @@ function saveAccounts(data) {
 
 loadAccounts();
 
-// Arayüz dosyamız
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
-// SSE endpoint'i
 app.get('/api/stream', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -74,89 +69,77 @@ function broadcast(type, data) {
   });
 }
 
-// Yeni Hesap Ekleme API'si
+// Hesap Ekleme API'si
 app.post('/api/accounts/add', (req, res) => {
-  const { username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmd1, loopCmd2, loopInterval, loopDelay } = req.body;
+  const { username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmds, loopInterval, loopDelay, autoRestartMins } = req.body;
   if (accounts.some(acc => acc.username === username)) {
     return res.json({ success: false, error: 'Bu kullanıcı adı zaten listede var.' });
   }
   accounts.push({ 
-    username, host, port, version, 
+    username, host, port: parseInt(port) || 25565, version, 
     commands: commands || '', 
     broadcastMsg: broadcastMsg || '', 
     broadcastInterval: parseInt(broadcastInterval) || 300,
-    loopCmd1: loopCmd1 || '',
-    loopCmd2: loopCmd2 || '',
+    loopCmds: loopCmds || '',
     loopInterval: parseInt(loopInterval) || 300,
-    loopDelay: parseInt(loopDelay) || 10
+    loopDelay: parseInt(loopDelay) || 10,
+    autoRestartMins: parseInt(autoRestartMins) || 0
   });
   saveAccounts(accounts);
   res.json({ success: true });
 });
 
-// Profil Düzenleme ve Değişiklikleri Diske Kaydetme API'si (Sadece Çevrimdışıyken çalışır)
+// Profil Düzenleme API'si
 app.post('/api/accounts/edit', (req, res) => {
-  const { originalUsername, username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmd1, loopCmd2, loopInterval, loopDelay } = req.body;
+  const { originalUsername, username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmds, loopInterval, loopDelay, autoRestartMins } = req.body;
   
-  // Bot aktif veya bağlanıyorsa düzenlemeyi reddet (Güvenlik Kuralı)
   if (activeBots[originalUsername]) {
-    return res.json({ success: false, error: 'Aktif veya bağlanmaya çalışan bir botun ayarlarını düzenleyemezsiniz. Lütfen önce bağlantıyı kesin.' });
+    return res.json({ success: false, error: 'Aktif botun ayarlarını değiştiremezsiniz. Önce bağlantıyı kesin.' });
   }
 
   const index = accounts.findIndex(acc => acc.username === originalUsername);
-  if (index === -1) {
-    return res.json({ success: false, error: 'Hesap bulunamadı.' });
-  }
+  if (index === -1) return res.json({ success: false, error: 'Hesap bulunamadı.' });
 
-  // Eğer kullanıcı adı değiştiyse, yeni adın başkası tarafından alınmadığından emin ol
   if (username !== originalUsername && accounts.some(acc => acc.username === username)) {
-    return res.json({ success: false, error: 'Bu kullanıcı adı zaten başka bir hesap tarafından kullanılıyor.' });
+    return res.json({ success: false, error: 'Bu kullanıcı adı başka bir hesapta kullanılıyor.' });
   }
 
-  // Hesap konfigürasyonunu güncelle
   accounts[index] = {
-    username,
-    host,
+    username, host,
     port: parseInt(port) || 25565,
     version,
     commands: commands || '',
     broadcastMsg: broadcastMsg || '',
     broadcastInterval: parseInt(broadcastInterval) || 300,
-    loopCmd1: loopCmd1 || '',
-    loopCmd2: loopCmd2 || '',
+    loopCmds: loopCmds || '',
     loopInterval: parseInt(loopInterval) || 300,
-    loopDelay: parseInt(loopDelay) || 10
+    loopDelay: parseInt(loopDelay) || 10,
+    autoRestartMins: parseInt(autoRestartMins) || 0
   };
 
-  saveAccounts(accounts); // Diske yaz
+  saveAccounts(accounts);
   res.json({ success: true });
 });
 
-// Hesap Silme API'si (Tüm zamanlayıcıları güvenle kapatır ve çökmeyi önler)
+// Hesap Silme API'si
 app.post('/api/accounts/delete', (req, res) => {
   try {
     const { username } = req.body;
-    
-    // Eğer bot aktifse veya bağlanmaya çalışıyorsa tüm zamanlayıcılarını ve motoru temizleyelim
     const active = activeBots[username];
     if (active) {
-      if (active.afkTimer) clearInterval(active.afkTimer);
-      if (active.broadcastTimer) clearInterval(active.broadcastTimer);
-      if (active.loopTimer) clearInterval(active.loopTimer);
-      if (active.reconnectTimer) clearTimeout(active.reconnectTimer); // Sinsi geri bağlanma zamanlayıcısını sil!
+      clearBotTimers(active);
       if (active.instance) active.instance.quit();
       delete activeBots[username];
     }
-    
     accounts = accounts.filter(acc => acc.username !== username);
     saveAccounts(accounts);
     res.json({ success: true });
   } catch (err) {
-    res.json({ success: false, error: 'Hesap silinirken bir hata oluştu: ' + err.message });
+    res.json({ success: false, error: 'Hesap silinirken hata: ' + err.message });
   }
 });
 
-// Chat Mesajı Gönderme API'si
+// Chat Gönderme API'si
 app.post('/api/send', (req, res) => {
   const { message, sender } = req.body;
   if (sender === 'all') {
@@ -179,33 +162,57 @@ app.post('/api/send', (req, res) => {
   res.json({ success: false });
 });
 
-// Bot durum akış döngüsü (Masaüstü için saniyelik/hızlı)
+// Sandık / Menü Slot Tıklama API'si
+app.post('/api/window/click', (req, res) => {
+  const { username, slot } = req.body;
+  const active = activeBots[username];
+  if (active && active.instance && active.instance.currentWindow) {
+    try {
+      active.instance.clickWindow(slot, 0, 0);
+      return res.json({ success: true });
+    } catch (e) {
+      return res.json({ success: false, error: e.message });
+    }
+  }
+  res.json({ success: false, error: 'Açık menü bulunamadı.' });
+});
+
+// Saniyelik Durum Yayını
 setInterval(() => {
   let statuses = {};
   accounts.forEach(acc => {
     const active = activeBots[acc.username];
     const isOnline = active && active.instance && active.instance.entity;
     
+    let openWindow = null;
+    if (isOnline && active.instance.currentWindow) {
+      const w = active.instance.currentWindow;
+      openWindow = {
+        title: w.title ? JSON.parse(w.title).text || 'Menü' : 'Menü',
+        slots: w.slots.map((item, idx) => item ? { slot: idx, name: item.displayName, count: item.count } : null)
+      };
+    }
+
     statuses[acc.username] = {
       online: isOnline,
       connecting: active ? active.connecting : false,
       host: acc.host,
       port: acc.port,
-      proxy: acc.proxy || null,
+      version: acc.version || '1.20.1',
       commands: acc.commands || '',
       broadcastMsg: acc.broadcastMsg || '',
       broadcastInterval: acc.broadcastInterval || 300,
       hasAutoBroadcaster: acc.broadcastMsg && acc.broadcastMsg.trim() !== '',
-      loopCmd1: acc.loopCmd1 || '',
-      loopCmd2: acc.loopCmd2 || '',
+      loopCmds: acc.loopCmds || (acc.loopCmd1 ? `${acc.loopCmd1}\n${acc.loopCmd2 || ''}` : ''),
       loopInterval: acc.loopInterval || 300,
       loopDelay: acc.loopDelay || 10,
-      hasAutoLoop: acc.loopCmd1 && acc.loopCmd1.trim() !== '',
-      health: isOnline && active.instance.health ? active.instance.health.toFixed(1) : '-',
-      food: isOnline && active.instance.food ? active.instance.food : '-',
+      hasAutoLoop: acc.loopCmds && acc.loopCmds.trim() !== '',
+      autoRestartMins: acc.autoRestartMins || 0,
+      health: isOnline && active.instance.health !== undefined ? active.instance.health.toFixed(1) : '-',
+      food: isOnline && active.instance.food !== undefined ? active.instance.food : '-',
       pos: isOnline ? { x: active.instance.entity.position.x.toFixed(1), y: active.instance.entity.position.y.toFixed(1), z: active.instance.entity.position.z.toFixed(1) } : { x: '-', y: '-', z: '-' },
-      inventory: isOnline && active.instance.inventory ? active.instance.inventory.items().map(item => ({ name: item.displayName, count: item.count })) : [],
-      players: isOnline && active.instance.players ? Object.keys(active.instance.players) : []
+      inventory: isOnline && active.instance.inventory ? active.instance.inventory.items().map(item => ({ slot: item.slot, name: item.displayName, count: item.count })) : [],
+      openWindow: openWindow
     };
   });
   broadcast('status_all', { statuses });
@@ -219,29 +226,25 @@ app.post('/api/control', (req, res) => {
 
   if (action === 'connect') {
     if (!activeBots[username]) {
-      // reconnectTimer: null parametresini ekliyoruz
-      activeBots[username] = { instance: null, afkTimer: null, broadcastTimer: null, loopTimer: null, reconnectTimer: null, connecting: true, antiAfk: true, manualDisconnect: false };
+      activeBots[username] = { instance: null, afkTimer: null, broadcastTimer: null, loopTimer: null, restartTimer: null, reconnectTimer: null, connecting: true, antiAfk: true, manualDisconnect: false };
       startBot(acc);
       res.json({ success: true });
     }
   } else if (action === 'disconnect') {
     const active = activeBots[username];
     if (active) {
-      active.manualDisconnect = true; // El ile kapatıldı
-      if (active.afkTimer) clearInterval(active.afkTimer);
-      if (active.broadcastTimer) clearInterval(active.broadcastTimer);
-      if (active.loopTimer) clearInterval(active.loopTimer);
-      if (active.reconnectTimer) clearTimeout(active.reconnectTimer); // Sinsi geri bağlanma zamanlayıcısını anında iptal et!
+      active.manualDisconnect = true;
+      clearBotTimers(active);
       if (active.instance) active.instance.quit();
       delete activeBots[username];
-      broadcast('chat', { bot: username, text: `[Sistem] Sunucu ile bağlantı panelden el ile kesildi.` });
+      broadcast('chat', { bot: username, text: `[Sistem] Bağlantı el ile kesildi.` });
       res.json({ success: true });
     }
   } else if (action === 'toggle-afk') {
     const active = activeBots[username];
     if (active) {
       active.antiAfk = !active.antiAfk;
-      broadcast('chat', { text: `[Sistem] Anti-AFK durumu: ${active.antiAfk ? 'Aktif' : 'Pasif'}` });
+      broadcast('chat', { text: `[Sistem] Anti-AFK: ${active.antiAfk ? 'Aktif' : 'Pasif'}` });
       res.json({ success: true });
     }
   } else if (action === 'respawn') {
@@ -253,73 +256,157 @@ app.post('/api/control', (req, res) => {
   }
 });
 
+// Toplu Kontrol API'si
+app.post('/api/control-all', (req, res) => {
+  const { action } = req.body;
+  
+  if (action === 'connect-all') {
+    accounts.forEach((acc, index) => {
+      setTimeout(() => {
+        if (!activeBots[acc.username]) {
+          activeBots[acc.username] = { instance: null, afkTimer: null, broadcastTimer: null, loopTimer: null, restartTimer: null, reconnectTimer: null, connecting: true, antiAfk: true, manualDisconnect: false };
+          startBot(acc);
+        }
+      }, index * 2000);
+    });
+    res.json({ success: true });
+  } else if (action === 'disconnect-all') {
+    Object.keys(activeBots).forEach(usr => {
+      const active = activeBots[usr];
+      if (active) {
+        active.manualDisconnect = true;
+        clearBotTimers(active);
+        if (active.instance) active.instance.quit();
+      }
+    });
+    activeBots = {};
+    res.json({ success: true });
+  }
+});
+
+function clearBotTimers(active) {
+  if (active.afkTimer) clearInterval(active.afkTimer);
+  if (active.broadcastTimer) clearInterval(active.broadcastTimer);
+  if (active.loopTimer) clearInterval(active.loopTimer);
+  if (active.restartTimer) clearInterval(active.restartTimer);
+  if (active.reconnectTimer) clearTimeout(active.reconnectTimer);
+}
+
 function startBot(acc) {
   const username = acc.username;
   broadcast('chat', { bot: username, text: `[Sistem] Sunucuya bağlanılıyor...` });
 
-  const botOptions = { host: acc.host, port: acc.port, username: acc.username, version: acc.version, auth: 'offline', viewDistance: 'tiny' };
-
+  const botOptions = { 
+    host: acc.host, 
+    port: acc.port, 
+    username: acc.username, 
+    version: acc.version, 
+    auth: 'offline', 
+    viewDistance: 'tiny',
+    checkTimeoutInterval: 120 * 1000,
+    hideErrors: true,
+    skipValidation: true,
+    respawn: true
+  };
+  
   const botInstance = mineflayer.createBot(botOptions);
+  
   if (activeBots[username]) activeBots[username].instance = botInstance;
 
+  // Sub-Server BungeeCord soket kopmalarını yumuşak yakalama
+  if (botInstance._client) {
+    botInstance._client.on('error', () => {});
+    botInstance._client.on('end', () => {});
+  }
+
   botInstance.once('spawn', () => {
-    if (activeBots[username]) {
-      activeBots[username].connecting = false;
-    }
+    if (activeBots[username]) activeBots[username].connecting = false;
     broadcast('chat', { bot: username, text: `[Sistem] Başarıyla oyuna girdi!` });
 
-    // 1. Gecikmeli Sıralı Giriş Komutları
+    // 1. Sıralı Giriş Komutları (Bungee geçişi için aradaki süre 5s yapıldı)
     if (acc.commands && acc.commands.trim() !== '') {
       const cmdLines = acc.commands.split('\n').map(l => l.trim()).filter(l => l.length > 0);
       cmdLines.forEach((line, index) => {
         setTimeout(() => {
           const active = activeBots[username];
-          if (active && active.instance && active.instance.entity) { active.instance.chat(line); broadcast('chat', { bot: username, text: `[Oto-Giriş]: ${line}` }); }
-        }, (index + 1) * 4000); 
+          if (active && active.instance && active.instance.entity) { 
+            active.instance.chat(line); 
+            broadcast('chat', { bot: username, text: `[Oto-Giriş]: ${line}` }); 
+          }
+        }, (index + 1) * 5000); 
       });
     }
 
-    // 2. Zaman Ayarlı Reklam Otomasyonu
+    // 2. Reklam Otomasyonu
     if (acc.broadcastMsg && acc.broadcastMsg.trim() !== '' && acc.broadcastInterval > 0) {
       if (activeBots[username].broadcastTimer) clearInterval(activeBots[username].broadcastTimer);
       activeBots[username].broadcastTimer = setInterval(() => {
         const active = activeBots[username];
-        if (active && active.instance && active.instance.entity) { active.instance.chat(acc.broadcastMsg); broadcast('chat', { bot: username, text: `[Oto-Reklam]: ${acc.broadcastMsg}` }); }
+        if (active && active.instance && active.instance.entity) { 
+          active.instance.chat(acc.broadcastMsg); 
+          broadcast('chat', { bot: username, text: `[Oto-Reklam]: ${acc.broadcastMsg}` }); 
+        }
       }, acc.broadcastInterval * 1000);
     }
 
-    // 3. Zaman Ayarlı Çift Komut Döngüsel Otomasyonu (Örn: Zindan & Geri Dönüş)
-    if (acc.loopCmd1 && acc.loopCmd1.trim() !== '' && acc.loopInterval > 0) {
+    // 3. Çoklu Döngü Komut Otomasyonu
+    const loopRaw = acc.loopCmds || (acc.loopCmd1 ? `${acc.loopCmd1}\n${acc.loopCmd2 || ''}` : '');
+    if (loopRaw && loopRaw.trim() !== '' && acc.loopInterval > 0) {
       if (activeBots[username].loopTimer) clearInterval(activeBots[username].loopTimer);
+
+      const loopLines = loopRaw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const interDelay = (acc.loopDelay || 10) * 1000;
 
       activeBots[username].loopTimer = setInterval(() => {
         const active = activeBots[username];
         if (active && active.instance && active.instance.entity) {
-          active.instance.chat(acc.loopCmd1);
-          broadcast('chat', { bot: username, text: `[Oto-Döngü]: ${acc.loopCmd1} komutu gönderildi.` });
-
-          setTimeout(() => {
-            const innerActive = activeBots[username];
-            if (innerActive && innerActive.instance && innerActive.instance.entity) {
-              innerActive.instance.chat(acc.loopCmd2 || '/back');
-              broadcast('chat', { bot: username, text: `[Oto-Döngü Gecikmeli]: ${acc.loopCmd2 || '/back'} komutu gönderildi.` });
-            }
-          }, (acc.loopDelay || 10) * 1000);
+          loopLines.forEach((cmdLine, idx) => {
+            setTimeout(() => {
+              const innerActive = activeBots[username];
+              if (innerActive && innerActive.instance && innerActive.instance.entity) {
+                innerActive.instance.chat(cmdLine);
+                broadcast('chat', { bot: username, text: `[Oto-Döngü]: ${cmdLine}` });
+              }
+            }, idx * interDelay);
+          });
         }
       }, acc.loopInterval * 1000);
+    }
+
+    // 4. Periyodik Restart
+    if (acc.autoRestartMins && acc.autoRestartMins > 0) {
+      if (activeBots[username].restartTimer) clearInterval(activeBots[username].restartTimer);
+      activeBots[username].restartTimer = setInterval(() => {
+        const active = activeBots[username];
+        if (active && active.instance) {
+          broadcast('chat', { bot: username, text: `[Sistem] Periyodik zamanlayıcı doldu (${acc.autoRestartMins} dk). Yeniden başlatılıyor...` });
+          active.instance.quit();
+        }
+      }, acc.autoRestartMins * 60 * 1000);
     }
 
     // Anti-AFK
     const afkTimer = setInterval(() => {
       const active = activeBots[username];
       if (!active || !active.instance || !active.instance.entity || !active.antiAfk) return;
+      
       const actions = [
-        () => { active.instance.setControlState('jump', true); setTimeout(() => active.instance.setControlState('jump', false), 400); },
+        () => { active.instance.setControlState('jump', true); setTimeout(() => { if (active.instance) active.instance.setControlState('jump', false); }, 400); },
         () => { const yaw = active.instance.entity.yaw + (Math.random() - 0.5) * 1.5; const pitch = (Math.random() - 0.5) * 0.5; active.instance.look(yaw, pitch); },
-        () => { active.instance.setControlState('sneak', true); setTimeout(() => active.instance.setControlState('sneak', false), 600); }
+        () => { active.instance.setControlState('sneak', true); setTimeout(() => { if (active.instance) active.instance.setControlState('sneak', false); }, 600); },
+        () => {
+          active.instance.setControlState('forward', true);
+          setTimeout(() => {
+            if (active.instance) {
+              active.instance.setControlState('forward', false);
+              active.instance.setControlState('back', true);
+              setTimeout(() => { if (active.instance) active.instance.setControlState('back', false); }, 300);
+            }
+          }, 300);
+        }
       ];
       actions[Math.floor(Math.random() * actions.length)]();
-    }, 30000 + Math.random() * 15000);
+    }, 25000 + Math.random() * 10000);
 
     if (activeBots[username]) activeBots[username].afkTimer = afkTimer;
   });
@@ -338,21 +425,13 @@ function startBot(acc) {
   botInstance.on('end', (reason) => {
     broadcast('chat', { bot: username, text: `[Sistem] Bağlantısı koptu: ${reason}` });
     const active = activeBots[username];
-    if (active) {
-      if (active.afkTimer) clearInterval(active.afkTimer);
-      if (active.broadcastTimer) clearInterval(active.broadcastTimer);
-      if (active.loopTimer) clearInterval(active.loopTimer);
-    }
+    if (active) clearBotTimers(active);
     
-    // Eğer el ile kapatılmadıysa (Sistem veya sunucu nedeniyle düştüyse) otomatik geri bağlan
     if (active && !active.manualDisconnect) {
       active.connecting = true;
-      broadcast('chat', { bot: username, text: `[Sistem] 8 saniye içinde otomatik yeniden bağlanacak...` });
-      
-      // Zamanlayıcıyı reconnectTimer değişkenine kaydediyoruz (El ile kapatıldığında iptal edebilmek için)
-      active.reconnectTimer = setTimeout(() => { 
-        startBot(acc); 
-      }, 8000);
+      // Sub-server atmasında hızlı oto-bağlanma (3 saniye)
+      broadcast('chat', { bot: username, text: `[Sistem] 3s içinde otomatik yeniden bağlanacak...` });
+      active.reconnectTimer = setTimeout(() => { startBot(acc); }, 3000);
     } else {
       delete activeBots[username];
     }
@@ -363,32 +442,28 @@ function startBot(acc) {
   });
 }
 
-// Express sunucusunu yerel ağda başlatıyoruz
 app.listen(PORT, '127.0.0.1');
-
-// ==========================================
-// ELECTRON MASAÜSTÜ PENCERE & TEPSİ YÖNETİMİ
-// ==========================================
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1240,
+    height: 820,
     title: "Lunke Bot - Multi AFK Client",
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'views', 'icon.ico'),
-    webPreferences: {
-      nodeIntegration: false
-    }
+    webPreferences: { nodeIntegration: false }
   });
 
   win.loadURL(`http://127.0.0.1:${PORT}`);
 
-  // Çarpı (X) butonuna tıklandığında sessizce arkaya küçül! (Steam/Discord Tarzı)
+  win.webContents.on('render-process-gone', (event, details) => {
+    setTimeout(() => { if (win) win.reload(); }, 1000);
+  });
+
   win.on('close', (event) => {
     if (!isQuitting) {
-      event.preventDefault(); // Kapatmayı engelle
-      win.hide(); // Sadece pencereyi gizle
+      event.preventDefault();
+      win.hide();
     }
     return false;
   });
@@ -397,38 +472,20 @@ function createWindow() {
 electronApp.whenReady().then(() => {
   createWindow();
 
-  // YEREL SİSTEM TEPSİSİ (Saat yanı ikon) KURULUMU
   const iconPath = path.join(__dirname, 'views', 'icon.ico');
   tray = new Tray(iconPath);
 
   const contextMenu = Menu.buildFromTemplate([
-    { 
-      label: 'Göster / Aç', 
-      click: () => {
-        win.show();
-      } 
-    },
+    { label: 'Göster / Aç', click: () => { win.show(); } },
     { type: 'separator' },
-    { 
-      label: 'Kapat (Sonlandır)', 
-      click: () => {
-        isQuitting = true; // Tamamen çıkış bayrağını doğrula
-        electronApp.quit(); // Programı tamamen kapat
-      } 
-    }
+    { label: 'Kapat (Sonlandır)', click: () => { isQuitting = true; electronApp.quit(); } }
   ]);
 
   tray.setToolTip('Lunke Bot - AFK Client');
   tray.setContextMenu(contextMenu);
-
-  // Saat yanındaki ikona çift tıklandığında pencereyi geri açar
-  tray.on('double-click', () => {
-    win.show();
-  });
+  tray.on('double-click', () => { win.show(); });
 });
 
 electronApp.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    electronApp.quit();
-  }
+  if (process.platform !== 'darwin') electronApp.quit();
 });
