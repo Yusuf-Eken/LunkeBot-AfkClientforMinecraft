@@ -85,7 +85,7 @@
     .account-row.selected { border-color: var(--accent-purple); background: rgba(168, 85, 247, 0.08); box-shadow: 0 0 12px rgba(168, 85, 247, 0.15); }
 
     .acc-left { display: flex; align-items: center; gap: 10px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: all 0.2s; }
     .status-dot.online { background: var(--status-online); box-shadow: 0 0 8px var(--status-online); }
     .status-dot.connecting { background: var(--status-connecting); box-shadow: 0 0 8px var(--status-connecting); }
     .status-dot.offline { background: var(--status-offline); box-shadow: none; }
@@ -259,7 +259,6 @@
         <div id="tab-chat" class="tab-content active">
           <div class="chat-messages" id="chat-messages"></div>
           
-          <!-- Son Gönderilen 5 Komut Baloncukları -->
           <div class="recent-commands-bar" id="recent-commands-bar" style="display: none;"></div>
 
           <div class="chat-input-area">
@@ -366,7 +365,6 @@
     let chatHistories = {};
     let renderedUsernames = [];
 
-    // Recall / Son Komutlar Hafızası
     let commandHistory = [];
     let historyIndex = -1;
 
@@ -432,16 +430,12 @@
         event.stopPropagation();
       }
 
-      if (action === 'disconnect') {
-        const row = document.querySelector(`.account-row[data-username="${username}"]`);
-        if (row) {
-          const dot = row.querySelector('.status-dot');
-          if (dot) dot.className = 'status-dot offline';
-        }
-      }
-
       selectAccount(username);
-      await fetch('/api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, action }) });
+      await fetch('/api/control', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ username, action }) 
+      });
     }
 
     async function clickWindowSlot(slot) {
@@ -449,7 +443,6 @@
       await fetch('/api/window/click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: selectedUsername, slot }) });
     }
 
-    // Son 5 Komut Baloncuk Yönetimi
     function updateRecentCommandsUI() {
       const bar = document.getElementById('recent-commands-bar');
       if (!bar) return;
@@ -524,7 +517,6 @@
       const data = await res.json();
       if (data.success) {
         document.getElementById('add-user').value = '';
-        renderedUsernames = [];
       } else showToast(data.error);
     }
 
@@ -547,9 +539,7 @@
 
       const res = await fetch('/api/accounts/edit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
-      if (data.success) {
-        renderedUsernames = [];
-      } else showToast(data.error);
+      if (!data.success) showToast(data.error);
     }
 
     async function deleteSelectedAccount() {
@@ -567,7 +557,6 @@
         document.getElementById('inventory-view').style.display = 'none';
         
         selectedUsername = null;
-        renderedUsernames = [];
       } else showToast(data.error);
     }
 
@@ -624,7 +613,6 @@
       if (!message) return;
       input.value = '';
 
-      // Komut geçmişini güncelle (Son 5 komut)
       commandHistory = [message, ...commandHistory.filter(c => c !== message)].slice(0, 5);
       historyIndex = -1;
       updateRecentCommandsUI();
@@ -638,53 +626,52 @@
     const eventSource = new EventSource('/api/stream');
 
     eventSource.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if (data.type === 'chat') addLogToHistory(data.bot, data.text);
-  else if (data.type === 'status_all') {
-    localStatusData = data.statuses;
-    const listDiv = document.getElementById('account-list');
-    const activeUsernames = Object.keys(localStatusData);
+      const data = JSON.parse(event.data);
+      if (data.type === 'chat') addLogToHistory(data.bot, data.text);
+      else if (data.type === 'status_all') {
+        localStatusData = data.statuses;
+        const listDiv = document.getElementById('account-list');
+        const activeUsernames = Object.keys(localStatusData);
 
-    if (activeUsernames.length === 0) {
-      renderedUsernames = [];
-      listDiv.innerHTML = '';
-      return;
-    }
+        if (activeUsernames.length === 0) {
+          renderedUsernames = [];
+          listDiv.innerHTML = '';
+          return;
+        }
 
-    // Güvenli dizi karşılaştırması (Orijinal diziyi bozmadan kopya üzerinden sıralama)
-    const sortedCurrent = [...activeUsernames].sort().join(',');
-    const sortedRendered = [...renderedUsernames].sort().join(',');
+        const currentKey = [...activeUsernames].sort().join('|');
+        const renderedKey = [...renderedUsernames].sort().join('|');
 
-    if (sortedCurrent !== sortedRendered) {
-      renderedUsernames = [...activeUsernames];
-      listDiv.innerHTML = '';
-      
-      activeUsernames.forEach(usr => {
-        const s = localStatusData[usr];
-        const row = document.createElement('div');
-        row.className = 'account-row' + (selectedUsername === usr ? ' selected' : '');
-        row.setAttribute('data-username', usr);
-        row.onclick = () => selectAccount(usr);
+        if (currentKey !== renderedKey) {
+          renderedUsernames = [...activeUsernames];
+          listDiv.innerHTML = '';
+          
+          activeUsernames.forEach(usr => {
+            const s = localStatusData[usr];
+            const row = document.createElement('div');
+            row.className = 'account-row' + (selectedUsername === usr ? ' selected' : '');
+            row.setAttribute('data-username', usr);
+            row.onclick = () => selectAccount(usr);
 
-        const statusClass = s.online ? 'online' : (s.connecting ? 'connecting' : 'offline');
+            const statusClass = s.online ? 'online' : (s.connecting ? 'connecting' : 'offline');
 
-        row.innerHTML = `
-          <div class="acc-left">
-            <div class="status-dot ${statusClass}"></div>
-            <img class="acc-avatar" src="https://mc-heads.net/avatar/${usr}">
-            <div class="acc-details">
-              <span class="acc-name">${usr}</span>
-              <span class="acc-server">${s.host}:${s.port}</span>
-            </div>
-          </div>
-          <div class="btn-group-quick">
-            <button class="btn-icon-only connect" title="Bağlan" onclick="quickControl('${usr}', 'connect', event)">▶</button>
-            <button class="btn-icon-only disconnect" title="Bağlantıyı Kes" onclick="quickControl('${usr}', 'disconnect', event)">⏹</button>
-          </div>
-        `;
-        listDiv.appendChild(row);
-      });
-    }
+            row.innerHTML = `
+              <div class="acc-left">
+                <div class="status-dot ${statusClass}"></div>
+                <img class="acc-avatar" src="https://mc-heads.net/avatar/${usr}">
+                <div class="acc-details">
+                  <span class="acc-name">${usr}</span>
+                  <span class="acc-server">${s.host}:${s.port}</span>
+                </div>
+              </div>
+              <div class="btn-group-quick">
+                <button class="btn-icon-only connect" title="Bağlan" onclick="quickControl('${usr}', 'connect', event)">▶</button>
+                <button class="btn-icon-only disconnect" title="Bağlantıyı Kes" onclick="quickControl('${usr}', 'disconnect', event)">⏹</button>
+              </div>
+            `;
+            listDiv.appendChild(row);
+          });
+        }
 
         activeUsernames.forEach(usr => {
           const s = localStatusData[usr];
@@ -732,7 +719,7 @@
             lockOverlay.style.display = s.online ? 'flex' : 'none';
           }
 
-          document.getElementById('det-status').innerHTML = s.online ? '<span style="color:#10b981;">● ÇEVRİMİÇİ</span>' : '<span style="color:#ef4444;">● ÇEVRİMDIŞI</span>';
+          document.getElementById('det-status').innerHTML = s.online ? '<span style="color:#10b981;">● ÇEVRİMİÇİ</span>' : (s.connecting ? '<span style="color:#f59e0b;">● BAĞLANILIYOR...</span>' : '<span style="color:#ef4444;">● ÇEVRİMDIŞI</span>');
           document.getElementById('det-hp').textContent = s.online ? `❤️ Can: ${s.health} | 🍗 Açlık: ${s.food}` : 'Can: - | Açlık: -';
           document.getElementById('det-pos').textContent = s.online ? `X: ${s.pos.x} | Y: ${s.pos.y} | Z: ${s.pos.z}` : 'X: - | Y: - | Z: -';
 
