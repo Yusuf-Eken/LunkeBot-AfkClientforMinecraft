@@ -13,17 +13,19 @@
 ## ✨ Öne Çıkan Özellikler
 
 - ⚡ **Aşırı Düşük Kaynak Kullanımı:** Standart Minecraft istemcilerine kıyasla hesap başına sadece **40-60 MB RAM** harcar.
+- 🌐 **Otomatik Sürüm Algılama (Auto-Detect Handshake):** Sunucunun taban protokolünü otomatik olarak el sıkışarak tespit eder; alt sunucu (`/survival`, `/skyblock`) geçişlerinde yaşanan `socketClosed` ve `ECONNRESET` protokol uyumsuzluklarını önler.
 - 🎒 **Canlı Envanter & GUI Menü Desteği:** Botların sırt çantalarını anlık görüntüleyin; sunucudaki çiftçi, sandık veya ayar menülerinin (GUI) slotlarına arayüzden doğrudan tıklayın.
+- 💬 **Gelişmiş Sohbet & Komut Hatırlatıcı (Recall UI):**
+  - **Son 5 Komut Baloncuğu:** Sık kullanılan komutları tek tıkla mesaj kutusuna doldurur.
+  - **Terminal Tarzı Geçmiş:** Minecraft'taki gibi **Yukarı ($\uparrow$) ve Aşağı ($\downarrow$)** ok tuşlarıyla önceki komutlar arasında hızlıca gezinin.
+  - Bot bazlı veya tüm botlara toplu mesaj/komut gönderme.
+  - Sistem, hata, reklam ve sunucu mesajları için renkli neon etiketler.
 - 🤖 **Akıllı Otomasyonlar:**
   - **Sıralı Oto-Giriş (Auto-Login):** Sunucuya girişte `/register`, `/login` gibi komutları belirlediğiniz gecikmeyle sırayla çalıştırır.
   - **Zaman Ayarlı Oto-Reklam (Broadcaster):** Belirlenen saniye aralıklarında otomatik duyuru/reklam mesajı atar.
   - **Döngüsel Komut Otomasyonu (Dungeon/Loop Task):** Çoklu komut zincirlerini belirlediğiniz sıklık ve satır arası gecikmeyle döngüsel olarak çalıştırır.
   - **Periyodik Auto-Restart:** Sunucu çökmelerine veya lobi takılmalarına karşı belirlediğiniz dakikada bir botu otomatik olarak yeniden başlatır.
 - 🚶 **Gelişmiş Anti-AFK:** Sunucu korumalarına takılmamak için zıplama, bakış açısı değiştirme, eğilme (sneak) ve rastgele ileri-geri yürüme hareketleri yapar.
-- 💬 **Discord Tarzı Canlı Konsol (Sohbet):**
-  - Bot bazlı veya tüm botlara toplu mesaj/komut gönderme.
-  - Sistem, hata, reklam ve sunucu mesajları için renkli neon etiketler.
-  - Tıklanan bota anında kilitlenen sohbet odağı.
 - 🔒 **Güvenli & Ergonomik UI:** Online olan botların konfigürasyonlarının bozulmaması için cam efektli (Glassmorphism) kilit katmanı ve odaklanmayı bozmayan Toast bildirimleri.
 - 🪟 **Sistem Tepsisi (System Tray) Desteği:** Pencere kapatıldığında sağ alta küçülür, arka planda çalışmaya devam eder.
 
@@ -34,8 +36,8 @@
 - **Çekirdek (Backend):** Node.js & Express (SSE - Server-Sent Events canlı veri akışı)
 - **Minecraft Protokolü:** `mineflayer`
 - **Masaüstü Sarmalayıcı (GUI):** Electron.js & `electron-builder`
-- **Veri Depolama:** Yerel JSON veri tabanı (`accounts.json`)
-- **Boyut Optimizasyonu:** `minecraft-data` bağımlılıklarında gereksiz sürümler temizlenmiş ve GZip sıkıştırma algoritmalarıyla taşınabilir (Portable) tek dosya boyutu **~59 MB**'a düşürülmüştür.
+- **Veri Depolama:** İşletim sistemi kullanıcı verileri dizininde JSON veri tabanı (`accounts.json`)
+- **Boyut Optimizasyonu:** `minecraft-data` bağımlılıklarında gereksiz protokoller elenmiş ve derleme optimizasyonlarıyla taşınabilir (Portable) tek dosya boyutu **~59 MB** seviyesinde tutulmuştur.
 
 ---
 
