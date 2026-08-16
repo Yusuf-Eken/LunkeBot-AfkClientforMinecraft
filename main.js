@@ -1,5 +1,5 @@
 // ======================================================
-// LUNKE BOT - STANDALONE DESKTOP AFK CLIENT (v1.2.2)
+// LUNKE BOT - STANDALONE DESKTOP AFK CLIENT (v1.2.3)
 // ======================================================
 
 process.on('uncaughtException', (err) => {
@@ -311,7 +311,6 @@ function startBot(acc) {
   const username = acc.username;
   broadcast('chat', { bot: username, text: `[Sistem] Sunucuya bağlanılıyor...` });
 
-  // Otomatik Sürüm Algılama: 'auto' veya boş ise false verilerek Mineflayer Ping Handshake devreye girer
   const resolvedVersion = (acc.version && acc.version !== 'auto') ? acc.version : false;
 
   const botOptions = { 

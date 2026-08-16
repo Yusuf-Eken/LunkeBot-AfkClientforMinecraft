@@ -116,6 +116,7 @@
     .tab-content { display: none; flex: 1; min-height: 0; flex-direction: column; }
     .tab-content.active { display: flex; }
 
+    /* Tab 1: Chat */
     .chat-messages { flex: 1; padding: 16px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: #06030c; }
     .log-entry { padding: 4px 0; display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.02); }
     .chat-tag { font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; }
@@ -127,11 +128,28 @@
     .tag-server { background: rgba(255, 255, 255, 0.05); color: #9482b5; }
     .chat-text { color: #e9d5ff; line-height: 1.4; word-break: break-all; }
 
+    /* Son Gönderilen Komut Baloncukları */
+    .recent-commands-bar {
+      display: flex; gap: 6px; padding: 6px 12px; background: #0f071f;
+      border-top: 1px solid var(--border-color); overflow-x: auto; flex: none;
+    }
+    .cmd-chip {
+      background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.35);
+      color: var(--accent-purple-glow); font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; cursor: pointer;
+      white-space: nowrap; transition: all 0.2s ease; user-select: none;
+    }
+    .cmd-chip:hover {
+      background: rgba(168, 85, 247, 0.35); border-color: var(--accent-purple);
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.3); transform: translateY(-1px); color: #fff;
+    }
+
     .chat-input-area { padding: 12px; background: #130a26; border-top: 1px solid var(--border-color); display: flex; gap: 8px; flex: none; }
     .chat-select, .chat-input { background: var(--bg-input); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.82rem; }
     .chat-select { width: 150px; } .chat-input { flex: 1; }
     .btn-send { background: var(--accent-purple); color: #fff; border: none; padding: 0 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
 
+    /* Tab 2 & 3 Content */
     .tab-padding { padding: 20px; overflow-y: auto; flex: 1; }
     .btn-action { padding: 8px 16px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; }
     .btn-action.save { background: #10b981; color: #fff; }
@@ -240,9 +258,13 @@
         <!-- Tab 1: Sohbet -->
         <div id="tab-chat" class="tab-content active">
           <div class="chat-messages" id="chat-messages"></div>
+          
+          <!-- Son Gönderilen 5 Komut Baloncukları -->
+          <div class="recent-commands-bar" id="recent-commands-bar" style="display: none;"></div>
+
           <div class="chat-input-area">
             <select id="chat-sender" class="chat-select" onchange="onSenderChange(this.value)"><option value="all">Tüm Botlar</option></select>
-            <input type="text" id="chat-input" class="chat-input" placeholder="Komut / mesaj gönder..." onkeydown="if(event.key === 'Enter') sendMessage()">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Komut / mesaj gönder (↑ ↓ geçmiş)..." onkeydown="handleChatKeyDown(event)">
             <button class="btn-send" onclick="sendMessage()">Gönder</button>
           </div>
         </div>
@@ -271,7 +293,7 @@
                 <div class="form-group"><label>Kullanıcı Adı (Nick)</label><input type="text" id="det-edit-user" class="form-control"></div>
                 <div class="form-group"><label>Sürüm</label>
                   <select id="det-edit-version" class="form-control">
-                    <option value="auto">⚡ Otomatik Algıla (Önerilen)</option>
+                    <option value="auto">⚡ Otomatik</option>
                     <option value="1.21.4">1.21.4</option>
                     <option value="1.21.1">1.21.1</option>
                     <option value="1.21">1.21</option>
@@ -343,6 +365,10 @@
     let localStatusData = {}; 
     let chatHistories = {};
     let renderedUsernames = [];
+
+    // Recall / Son Komutlar Hafızası
+    let commandHistory = [];
+    let historyIndex = -1;
 
     function showToast(msg) {
       const toast = document.getElementById('toast-msg');
@@ -421,6 +447,59 @@
     async function clickWindowSlot(slot) {
       if (!selectedUsername) return;
       await fetch('/api/window/click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: selectedUsername, slot }) });
+    }
+
+    // Son 5 Komut Baloncuk Yönetimi
+    function updateRecentCommandsUI() {
+      const bar = document.getElementById('recent-commands-bar');
+      if (!bar) return;
+      
+      if (commandHistory.length === 0) {
+        bar.style.display = 'none';
+        bar.innerHTML = '';
+        return;
+      }
+      
+      bar.style.display = 'flex';
+      bar.innerHTML = '';
+      
+      commandHistory.forEach(cmd => {
+        const chip = document.createElement('span');
+        chip.className = 'cmd-chip';
+        chip.textContent = cmd.length > 20 ? cmd.substring(0, 18) + '...' : cmd;
+        chip.title = `Tıkla ve doldur: ${cmd}`;
+        chip.onclick = () => fillChatInput(cmd);
+        bar.appendChild(chip);
+      });
+    }
+
+    function fillChatInput(cmd) {
+      const input = document.getElementById('chat-input');
+      input.value = cmd;
+      input.focus();
+    }
+
+    function handleChatKeyDown(event) {
+      if (event.key === 'Enter') {
+        sendMessage();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (commandHistory.length > 0) {
+          if (historyIndex < commandHistory.length - 1) {
+            historyIndex++;
+          }
+          document.getElementById('chat-input').value = commandHistory[historyIndex];
+        }
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (historyIndex > 0) {
+          historyIndex--;
+          document.getElementById('chat-input').value = commandHistory[historyIndex];
+        } else if (historyIndex === 0) {
+          historyIndex = -1;
+          document.getElementById('chat-input').value = '';
+        }
+      }
     }
 
     async function addAccount() {
@@ -544,6 +623,11 @@
       const sender = document.getElementById('chat-sender').value;
       if (!message) return;
       input.value = '';
+
+      // Komut geçmişini güncelle (Son 5 komut)
+      commandHistory = [message, ...commandHistory.filter(c => c !== message)].slice(0, 5);
+      historyIndex = -1;
+      updateRecentCommandsUI();
 
       if (sender === 'all') Object.keys(chatHistories).forEach(usr => addLogToHistory(usr, '[Sen]: ' + message));
       else addLogToHistory(sender, '[Sen]: ' + message);
