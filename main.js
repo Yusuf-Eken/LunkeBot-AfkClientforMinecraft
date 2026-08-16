@@ -89,6 +89,7 @@ app.post('/api/accounts/add', (req, res) => {
     autoRestartMins: parseInt(autoRestartMins) || 0
   });
   saveAccounts(accounts);
+  broadcastAllStatus();
   res.json({ success: true });
 });
 

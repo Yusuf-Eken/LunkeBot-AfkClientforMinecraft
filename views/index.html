@@ -638,49 +638,53 @@
     const eventSource = new EventSource('/api/stream');
 
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'chat') addLogToHistory(data.bot, data.text);
-      else if (data.type === 'status_all') {
-        localStatusData = data.statuses;
-        const listDiv = document.getElementById('account-list');
-        const activeUsernames = Object.keys(localStatusData);
+  const data = JSON.parse(event.data);
+  if (data.type === 'chat') addLogToHistory(data.bot, data.text);
+  else if (data.type === 'status_all') {
+    localStatusData = data.statuses;
+    const listDiv = document.getElementById('account-list');
+    const activeUsernames = Object.keys(localStatusData);
 
-        if (activeUsernames.length === 0) {
-          renderedUsernames = [];
-          listDiv.innerHTML = '';
-          return;
-        }
+    if (activeUsernames.length === 0) {
+      renderedUsernames = [];
+      listDiv.innerHTML = '';
+      return;
+    }
 
-        if (JSON.stringify(activeUsernames.sort()) !== JSON.stringify(renderedUsernames.sort())) {
-          renderedUsernames = [...activeUsernames];
-          listDiv.innerHTML = '';
-          
-          activeUsernames.forEach(usr => {
-            const s = localStatusData[usr];
-            const row = document.createElement('div');
-            row.className = 'account-row' + (selectedUsername === usr ? ' selected' : '');
-            row.setAttribute('data-username', usr);
-            row.onclick = () => selectAccount(usr);
+    // Güvenli dizi karşılaştırması (Orijinal diziyi bozmadan kopya üzerinden sıralama)
+    const sortedCurrent = [...activeUsernames].sort().join(',');
+    const sortedRendered = [...renderedUsernames].sort().join(',');
 
-            const statusClass = s.online ? 'online' : (s.connecting ? 'connecting' : 'offline');
+    if (sortedCurrent !== sortedRendered) {
+      renderedUsernames = [...activeUsernames];
+      listDiv.innerHTML = '';
+      
+      activeUsernames.forEach(usr => {
+        const s = localStatusData[usr];
+        const row = document.createElement('div');
+        row.className = 'account-row' + (selectedUsername === usr ? ' selected' : '');
+        row.setAttribute('data-username', usr);
+        row.onclick = () => selectAccount(usr);
 
-            row.innerHTML = `
-              <div class="acc-left">
-                <div class="status-dot ${statusClass}"></div>
-                <img class="acc-avatar" src="https://mc-heads.net/avatar/${usr}">
-                <div class="acc-details">
-                  <span class="acc-name">${usr}</span>
-                  <span class="acc-server">${s.host}:${s.port}</span>
-                </div>
-              </div>
-              <div class="btn-group-quick">
-                <button class="btn-icon-only connect" title="Bağlan" onclick="quickControl('${usr}', 'connect', event)">▶</button>
-                <button class="btn-icon-only disconnect" title="Bağlantıyı Kes" onclick="quickControl('${usr}', 'disconnect', event)">⏹</button>
-              </div>
-            `;
-            listDiv.appendChild(row);
-          });
-        }
+        const statusClass = s.online ? 'online' : (s.connecting ? 'connecting' : 'offline');
+
+        row.innerHTML = `
+          <div class="acc-left">
+            <div class="status-dot ${statusClass}"></div>
+            <img class="acc-avatar" src="https://mc-heads.net/avatar/${usr}">
+            <div class="acc-details">
+              <span class="acc-name">${usr}</span>
+              <span class="acc-server">${s.host}:${s.port}</span>
+            </div>
+          </div>
+          <div class="btn-group-quick">
+            <button class="btn-icon-only connect" title="Bağlan" onclick="quickControl('${usr}', 'connect', event)">▶</button>
+            <button class="btn-icon-only disconnect" title="Bağlantıyı Kes" onclick="quickControl('${usr}', 'disconnect', event)">⏹</button>
+          </div>
+        `;
+        listDiv.appendChild(row);
+      });
+    }
 
         activeUsernames.forEach(usr => {
           const s = localStatusData[usr];
