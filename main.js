@@ -1,5 +1,5 @@
 // ======================================================
-// LUNKE BOT - STANDALONE DESKTOP AFK CLIENT (v1.2.0)
+// LUNKE BOT - STANDALONE DESKTOP AFK CLIENT (v1.2.2)
 // ======================================================
 
 process.on('uncaughtException', (err) => {
@@ -76,7 +76,10 @@ app.post('/api/accounts/add', (req, res) => {
     return res.json({ success: false, error: 'Bu kullanıcı adı zaten listede var.' });
   }
   accounts.push({ 
-    username, host, port: parseInt(port) || 25565, version, 
+    username, 
+    host, 
+    port: parseInt(port) || 25565, 
+    version: version || 'auto', 
     commands: commands || '', 
     broadcastMsg: broadcastMsg || '', 
     broadcastInterval: parseInt(broadcastInterval) || 300,
@@ -107,7 +110,7 @@ app.post('/api/accounts/edit', (req, res) => {
   accounts[index] = {
     username, host,
     port: parseInt(port) || 25565,
-    version,
+    version: version || 'auto',
     commands: commands || '',
     broadcastMsg: broadcastMsg || '',
     broadcastInterval: parseInt(broadcastInterval) || 300,
@@ -177,7 +180,7 @@ app.post('/api/window/click', (req, res) => {
   res.json({ success: false, error: 'Açık menü bulunamadı.' });
 });
 
-// Saniyelik Durum Yayını
+// Saniyelik Durum Yayını (Güvenli Window Parse)
 setInterval(() => {
   let statuses = {};
   accounts.forEach(acc => {
@@ -186,11 +189,23 @@ setInterval(() => {
     
     let openWindow = null;
     if (isOnline && active.instance.currentWindow) {
-      const w = active.instance.currentWindow;
-      openWindow = {
-        title: w.title ? JSON.parse(w.title).text || 'Menü' : 'Menü',
-        slots: w.slots.map((item, idx) => item ? { slot: idx, name: item.displayName, count: item.count } : null)
-      };
+      try {
+        const w = active.instance.currentWindow;
+        let titleText = 'Menü';
+        if (w.title) {
+          try {
+            titleText = JSON.parse(w.title).text || w.title;
+          } catch (e) {
+            titleText = w.title.toString();
+          }
+        }
+        openWindow = {
+          title: titleText,
+          slots: (w.slots || []).map((item, idx) => item ? { slot: idx, name: item.displayName, count: item.count } : null)
+        };
+      } catch (e) {
+        openWindow = null;
+      }
     }
 
     statuses[acc.username] = {
@@ -198,7 +213,7 @@ setInterval(() => {
       connecting: active ? active.connecting : false,
       host: acc.host,
       port: acc.port,
-      version: acc.version || '1.20.1',
+      version: acc.version || 'auto',
       commands: acc.commands || '',
       broadcastMsg: acc.broadcastMsg || '',
       broadcastInterval: acc.broadcastInterval || 300,
@@ -296,34 +311,30 @@ function startBot(acc) {
   const username = acc.username;
   broadcast('chat', { bot: username, text: `[Sistem] Sunucuya bağlanılıyor...` });
 
+  // Otomatik Sürüm Algılama: 'auto' veya boş ise false verilerek Mineflayer Ping Handshake devreye girer
+  const resolvedVersion = (acc.version && acc.version !== 'auto') ? acc.version : false;
+
   const botOptions = { 
     host: acc.host, 
     port: acc.port, 
     username: acc.username, 
-    version: acc.version, 
     auth: 'offline', 
-    viewDistance: 'tiny',
-    checkTimeoutInterval: 120 * 1000,
-    hideErrors: true,
-    skipValidation: true,
-    respawn: true
+    viewDistance: 'tiny'
   };
+
+  if (resolvedVersion) {
+    botOptions.version = resolvedVersion;
+  }
   
   const botInstance = mineflayer.createBot(botOptions);
   
   if (activeBots[username]) activeBots[username].instance = botInstance;
 
-  // Sub-Server BungeeCord soket kopmalarını yumuşak yakalama
-  if (botInstance._client) {
-    botInstance._client.on('error', () => {});
-    botInstance._client.on('end', () => {});
-  }
-
   botInstance.once('spawn', () => {
     if (activeBots[username]) activeBots[username].connecting = false;
     broadcast('chat', { bot: username, text: `[Sistem] Başarıyla oyuna girdi!` });
 
-    // 1. Sıralı Giriş Komutları (Bungee geçişi için aradaki süre 5s yapıldı)
+    // 1. Sıralı Giriş Komutları
     if (acc.commands && acc.commands.trim() !== '') {
       const cmdLines = acc.commands.split('\n').map(l => l.trim()).filter(l => l.length > 0);
       cmdLines.forEach((line, index) => {
@@ -333,7 +344,7 @@ function startBot(acc) {
             active.instance.chat(line); 
             broadcast('chat', { bot: username, text: `[Oto-Giriş]: ${line}` }); 
           }
-        }, (index + 1) * 5000); 
+        }, (index + 1) * 4000); 
       });
     }
 
@@ -429,9 +440,8 @@ function startBot(acc) {
     
     if (active && !active.manualDisconnect) {
       active.connecting = true;
-      // Sub-server atmasında hızlı oto-bağlanma (3 saniye)
-      broadcast('chat', { bot: username, text: `[Sistem] 3s içinde otomatik yeniden bağlanacak...` });
-      active.reconnectTimer = setTimeout(() => { startBot(acc); }, 3000);
+      broadcast('chat', { bot: username, text: `[Sistem] 8s içinde otomatik yeniden bağlanacak...` });
+      active.reconnectTimer = setTimeout(() => { startBot(acc); }, 8000);
     } else {
       delete activeBots[username];
     }

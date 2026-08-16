@@ -7,7 +7,6 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-    /* LUNKE BOT PALETTE */
     :root {
       --bg-dark: #090514;
       --bg-card: #120924;
@@ -65,7 +64,7 @@
     .form-group label { display: block; margin-bottom: 4px; font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
     .form-control {
       width: 100%; background-color: var(--bg-input); border: 1px solid var(--border-color);
-      color: #fff; padding: 7px 10px; border-radius: 6px; font-size: 0.82rem; transition: border 0.15s;
+      color: #fff; padding: 7px 8px; border-radius: 6px; font-size: 0.8rem; transition: border 0.15s;
     }
     .form-control:focus { outline: none; border-color: var(--accent-purple); box-shadow: 0 0 8px rgba(168, 85, 247, 0.2); }
 
@@ -96,8 +95,7 @@
     .acc-name { font-weight: 600; font-size: 0.85rem; color: #fff; }
     .acc-server { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
 
-    /* Sadece İkonlu Buton Tasarımı */
-    .btn-group-quick { display: flex; gap: 6px; }
+    .btn-group-quick { display: flex; gap: 6px; z-index: 5; }
     .btn-icon-only {
       width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
@@ -108,7 +106,6 @@
     .btn-icon-only.disconnect { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
     .btn-icon-only.disconnect:hover { background: rgba(239, 68, 68, 0.35); transform: scale(1.08); }
 
-    /* SAĞ PANEL & SEKMELİ MİMARİ */
     .right-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; background-color: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
     
     .panel-tabs { display: flex; background: #180d30; border-bottom: 1px solid var(--border-color); flex: none; }
@@ -119,7 +116,6 @@
     .tab-content { display: none; flex: 1; min-height: 0; flex-direction: column; }
     .tab-content.active { display: flex; }
 
-    /* Tab 1: Chat */
     .chat-messages { flex: 1; padding: 16px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: #06030c; }
     .log-entry { padding: 4px 0; display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.02); }
     .chat-tag { font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; }
@@ -136,7 +132,6 @@
     .chat-select { width: 150px; } .chat-input { flex: 1; }
     .btn-send { background: var(--accent-purple); color: #fff; border: none; padding: 0 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
 
-    /* Tab 2 & 3 Content */
     .tab-padding { padding: 20px; overflow-y: auto; flex: 1; }
     .btn-action { padding: 8px 16px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; }
     .btn-action.save { background: #10b981; color: #fff; }
@@ -148,7 +143,6 @@
     .inv-count { font-weight: 700; color: #f59e0b; }
     .toggle-advanced-btn { background: none; border: 1px dashed var(--border-color); color: var(--text-muted); width: 100%; padding: 6px; margin-top: 6px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
 
-    /* ONLINE BOT AYARLAR KİLİT (BLUR OVERLAY) YAPISI */
     .settings-container { position: relative; }
     .settings-overlay {
       position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
@@ -160,7 +154,6 @@
       box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
     }
 
-    /* CUSTOM TOAST NOTIFICATION (Native Alert Yerine) */
     .toast-notification {
       position: fixed; top: 20px; right: 20px; z-index: 9999;
       background: #1e0a2a; border: 1px solid var(--accent-red); color: #fca5a5;
@@ -188,21 +181,17 @@
             <div class="form-group"><label>Kullanıcı Adı</label><input type="text" id="add-user" class="form-control" placeholder="Bot Nick"></div>
             <div class="form-group"><label>Sürüm</label>
               <select id="add-version" class="form-control">
-                <option value="1.21.11" selected>1.21.11</option>
-                <option value="1.21.9">1.21.9</option>
-                <option value="1.21.8">1.21.8</option>
-                <option value="1.21.6">1.21.6</option>
-                <option value="1.21.5">1.21.5</option>
+                <option value="auto" selected>⚡ Otomatik</option>
                 <option value="1.21.4">1.21.4</option>
-                <option value="1.21.3">1.21.3</option>
                 <option value="1.21.1">1.21.1</option>
                 <option value="1.21">1.21</option>
-                <option value="1.20.6">1.20.6</option>
-                <option value="1.20.5">1.20.5</option>
                 <option value="1.20.4">1.20.4</option>
-                <option value="1.20.3">1.20.3</option>
                 <option value="1.20.2">1.20.2</option>
                 <option value="1.20.1">1.20.1</option>
+                <option value="1.19.4">1.19.4</option>
+                <option value="1.18.2">1.18.2</option>
+                <option value="1.16.5">1.16.5</option>
+                <option value="1.12.2">1.12.2</option>
               </select>
             </div>
           </div>
@@ -282,21 +271,17 @@
                 <div class="form-group"><label>Kullanıcı Adı (Nick)</label><input type="text" id="det-edit-user" class="form-control"></div>
                 <div class="form-group"><label>Sürüm</label>
                   <select id="det-edit-version" class="form-control">
-                    <option value="1.21.11">1.21.11</option>
-                    <option value="1.21.9">1.21.9</option>
-                    <option value="1.21.8">1.21.8</option>
-                    <option value="1.21.6">1.21.6</option>
-                    <option value="1.21.5">1.21.5</option>
+                    <option value="auto">⚡ Otomatik Algıla (Önerilen)</option>
                     <option value="1.21.4">1.21.4</option>
-                    <option value="1.21.3">1.21.3</option>
                     <option value="1.21.1">1.21.1</option>
                     <option value="1.21">1.21</option>
-                    <option value="1.20.6">1.20.6</option>
-                    <option value="1.20.5">1.20.5</option>
                     <option value="1.20.4">1.20.4</option>
-                    <option value="1.20.3">1.20.3</option>
                     <option value="1.20.2">1.20.2</option>
                     <option value="1.20.1">1.20.1</option>
+                    <option value="1.19.4">1.19.4</option>
+                    <option value="1.18.2">1.18.2</option>
+                    <option value="1.16.5">1.16.5</option>
+                    <option value="1.12.2">1.12.2</option>
                   </select>
                 </div>
               </div>
@@ -359,7 +344,6 @@
     let chatHistories = {};
     let renderedUsernames = [];
 
-    // Native Alert yerine Odaklanmayı Bozmayan Toast Mesajı
     function showToast(msg) {
       const toast = document.getElementById('toast-msg');
       document.getElementById('toast-text').textContent = msg;
@@ -371,7 +355,9 @@
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       
-      event.target.classList.add('active');
+      if (event && event.target) {
+        event.target.classList.add('active');
+      }
       document.getElementById(tabId).classList.add('active');
     }
 
@@ -415,7 +401,19 @@
     }
 
     async function quickControl(username, action, event) {
-      event.stopPropagation();
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      if (action === 'disconnect') {
+        const row = document.querySelector(`.account-row[data-username="${username}"]`);
+        if (row) {
+          const dot = row.querySelector('.status-dot');
+          if (dot) dot.className = 'status-dot offline';
+        }
+      }
+
       selectAccount(username);
       await fetch('/api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, action }) });
     }
@@ -490,7 +488,7 @@
         document.getElementById('inventory-view').style.display = 'none';
         
         selectedUsername = null;
-        renderedUsernames = []; // Tracker sıfırlandı, çizimi SSE'ye bıraktık (Flicker engellendi)
+        renderedUsernames = [];
       } else showToast(data.error);
     }
 
@@ -521,7 +519,7 @@
       const s = localStatusData[username];
       if (s) {
         document.getElementById('det-edit-user').value = username;
-        document.getElementById('det-edit-version').value = s.version || '1.20.1';
+        document.getElementById('det-edit-version').value = s.version || 'auto';
         document.getElementById('det-edit-host').value = s.host || '';
         document.getElementById('det-edit-port').value = s.port || 25565;
         document.getElementById('det-edit-commands').value = s.commands || '';
@@ -563,7 +561,6 @@
         const listDiv = document.getElementById('account-list');
         const activeUsernames = Object.keys(localStatusData);
 
-        // Hiç hesap kalmadığında listeyi temizle
         if (activeUsernames.length === 0) {
           renderedUsernames = [];
           listDiv.innerHTML = '';
