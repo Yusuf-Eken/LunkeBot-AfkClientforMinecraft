@@ -1,5 +1,5 @@
 // ======================================================
-// LUNKE BOT - STANDALONE DESKTOP AFK CLIENT (v1.2.5)
+// LUNKE BOT - STANDALONE DESKTOP AFK CLIENT (v1.2.6)
 // ======================================================
 
 process.on('uncaughtException', (err) => {
@@ -77,7 +77,6 @@ function getStatusPayload() {
   accounts.forEach(acc => {
     const active = activeBots[acc.username];
     
-    // Güvenli soket ve spawn doğrulama
     const hasSocket = active && active.instance && active.instance._client && active.instance._client.socket && !active.instance._client.socket.destroyed;
     const isOnline = Boolean(hasSocket && (active.instance.entity || active.instance.player || active.spawned));
     const isConnecting = Boolean(active && active.connecting && !isOnline);
@@ -118,6 +117,8 @@ function getStatusPayload() {
       loopDelay: acc.loopDelay || 10,
       hasAutoLoop: Boolean(acc.loopCmds && acc.loopCmds.trim() !== ''),
       autoRestartMins: acc.autoRestartMins || 0,
+      enableWalk: acc.enableWalk || false,
+      walkInterval: acc.walkInterval || 300,
       health: isOnline && active.instance.health !== undefined ? active.instance.health.toFixed(1) : '-',
       food: isOnline && active.instance.food !== undefined ? active.instance.food : '-',
       pos: isOnline && active.instance.entity ? { 
@@ -142,7 +143,7 @@ setInterval(() => {
 
 // Hesap Ekleme API'si
 app.post('/api/accounts/add', (req, res) => {
-  const { username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmds, loopInterval, loopDelay, autoRestartMins } = req.body;
+  const { username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmds, loopInterval, loopDelay, autoRestartMins, enableWalk, walkInterval } = req.body;
   if (accounts.some(acc => acc.username === username)) {
     return res.json({ success: false, error: 'Bu kullanıcı adı zaten listede var.' });
   }
@@ -157,7 +158,9 @@ app.post('/api/accounts/add', (req, res) => {
     loopCmds: loopCmds || '',
     loopInterval: parseInt(loopInterval) || 300,
     loopDelay: parseInt(loopDelay) || 10,
-    autoRestartMins: parseInt(autoRestartMins) || 0
+    autoRestartMins: parseInt(autoRestartMins) || 0,
+    enableWalk: Boolean(enableWalk),
+    walkInterval: parseInt(walkInterval) || 300
   });
   saveAccounts(accounts);
   broadcastAllStatus();
@@ -166,7 +169,7 @@ app.post('/api/accounts/add', (req, res) => {
 
 // Profil Düzenleme API'si
 app.post('/api/accounts/edit', (req, res) => {
-  const { originalUsername, username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmds, loopInterval, loopDelay, autoRestartMins } = req.body;
+  const { originalUsername, username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmds, loopInterval, loopDelay, autoRestartMins, enableWalk, walkInterval } = req.body;
   
   if (activeBots[originalUsername]) {
     return res.json({ success: false, error: 'Aktif botun ayarlarını değiştiremezsiniz. Önce bağlantıyı kesin.' });
@@ -189,7 +192,9 @@ app.post('/api/accounts/edit', (req, res) => {
     loopCmds: loopCmds || '',
     loopInterval: parseInt(loopInterval) || 300,
     loopDelay: parseInt(loopDelay) || 10,
-    autoRestartMins: parseInt(autoRestartMins) || 0
+    autoRestartMins: parseInt(autoRestartMins) || 0,
+    enableWalk: Boolean(enableWalk),
+    walkInterval: parseInt(walkInterval) || 300
   };
 
   saveAccounts(accounts);
@@ -275,6 +280,7 @@ app.post('/api/control', (req, res) => {
     activeBots[username] = { 
       instance: null, 
       afkTimer: null, 
+      walkTimer: null,
       broadcastTimer: null, 
       loopTimer: null, 
       restartTimer: null, 
@@ -339,6 +345,7 @@ app.post('/api/control-all', (req, res) => {
           activeBots[acc.username] = { 
             instance: null, 
             afkTimer: null, 
+            walkTimer: null,
             broadcastTimer: null, 
             loopTimer: null, 
             restartTimer: null, 
@@ -377,6 +384,7 @@ app.post('/api/control-all', (req, res) => {
 
 function clearBotTimers(active) {
   if (active.afkTimer) clearInterval(active.afkTimer);
+  if (active.walkTimer) clearInterval(active.walkTimer);
   if (active.broadcastTimer) clearInterval(active.broadcastTimer);
   if (active.loopTimer) clearInterval(active.loopTimer);
   if (active.restartTimer) clearInterval(active.restartTimer);
@@ -486,30 +494,40 @@ function startBot(acc) {
       }, acc.autoRestartMins * 60 * 1000);
     }
 
-    // Anti-AFK
+    // 5. Güvenli Anti-AFK (Koordinat Değiştirmeyen Yerinde Hareketler: Zıplama, Bakış, Eğilme)
     const afkTimer = setInterval(() => {
       const active = activeBots[username];
       if (!active || !active.instance || !active.instance.entity || !active.antiAfk) return;
       
-      const actions = [
-        () => { active.instance.setControlState('jump', true); setTimeout(() => { if (active.instance) active.instance.setControlState('jump', false); }, 400); },
+      const safeActions = [
+        () => { active.instance.setControlState('jump', true); setTimeout(() => { if (active.instance) active.instance.setControlState('jump', false); }, 350); },
         () => { const yaw = active.instance.entity.yaw + (Math.random() - 0.5) * 1.5; const pitch = (Math.random() - 0.5) * 0.5; active.instance.look(yaw, pitch); },
-        () => { active.instance.setControlState('sneak', true); setTimeout(() => { if (active.instance) active.instance.setControlState('sneak', false); }, 600); },
-        () => {
-          active.instance.setControlState('forward', true);
-          setTimeout(() => {
-            if (active.instance) {
-              active.instance.setControlState('forward', false);
-              active.instance.setControlState('back', true);
-              setTimeout(() => { if (active.instance) active.instance.setControlState('back', false); }, 300);
-            }
-          }, 300);
-        }
+        () => { active.instance.setControlState('sneak', true); setTimeout(() => { if (active.instance) active.instance.setControlState('sneak', false); }, 500); }
       ];
-      actions[Math.floor(Math.random() * actions.length)]();
+      safeActions[Math.floor(Math.random() * safeActions.length)]();
     }, 25000 + Math.random() * 10000);
 
     if (activeBots[username]) activeBots[username].afkTimer = afkTimer;
+
+    // 6. Opsiyonel Fiziksel Yürüme (Kullanıcı açarsa belirlenen saniyede bir ileri-geri adım)
+    if (acc.enableWalk && acc.walkInterval > 0) {
+      if (activeBots[username].walkTimer) clearInterval(activeBots[username].walkTimer);
+      activeBots[username].walkTimer = setInterval(() => {
+        const active = activeBots[username];
+        if (!active || !active.instance || !active.instance.entity || !active.antiAfk) return;
+        
+        active.instance.setControlState('forward', true);
+        setTimeout(() => {
+          if (active.instance) {
+            active.instance.setControlState('forward', false);
+            active.instance.setControlState('back', true);
+            setTimeout(() => { 
+              if (active.instance) active.instance.setControlState('back', false); 
+            }, 250);
+          }
+        }, 250);
+      }, acc.walkInterval * 1000);
+    }
   });
 
   botInstance.on('message', (jsonMsg) => {

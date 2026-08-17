@@ -68,6 +68,45 @@
     }
     .form-control:focus { outline: none; border-color: var(--accent-purple); box-shadow: 0 0 8px rgba(168, 85, 247, 0.2); }
 
+    .checkbox-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 10px;
+      background: rgba(168, 85, 247, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .checkbox-card:hover {
+      border-color: var(--border-hover);
+      background: rgba(168, 85, 247, 0.08);
+    }
+    .checkbox-card input[type="checkbox"] {
+      accent-color: var(--accent-purple);
+      width: 16px;
+      height: 16px;
+      margin-top: 2px;
+      cursor: pointer;
+    }
+    .checkbox-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .checkbox-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    .checkbox-desc {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
     .batch-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; flex: none; }
     .btn-batch { padding: 8px; font-size: 0.78rem; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; }
     .btn-batch-connect { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
@@ -232,6 +271,20 @@
               <div class="form-group"><label>Gecikme (s)</label><input type="number" id="add-loop-delay" class="form-control" value="10"></div>
               <div class="form-group"><label>Restart (dk)</label><input type="number" id="add-restart-mins" class="form-control" value="0"></div>
             </div>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-top: 8px; align-items: stretch;">
+              <label class="checkbox-card" for="add-enable-walk">
+                <input type="checkbox" id="add-enable-walk">
+                <div class="checkbox-text">
+                  <span class="checkbox-title">Konum Değiştirme (Adımlama)</span>
+                  <span class="checkbox-desc">AFK atılmayı ve sohbet/hareket kilitlerini aşmak için adım atar.</span>
+                </div>
+              </label>
+              <div class="form-group" style="margin:0; display:flex; flex-direction:column; justify-content:center;">
+                <label style="font-size:0.68rem; margin-bottom:2px;">Sıklık (sn)</label>
+                <input type="number" id="add-walk-interval" class="form-control" value="300" placeholder="300">
+              </div>
+            </div>
           </div>
 
           <button class="btn-action save" style="margin-top: 8px; width: 100%;" onclick="addAccount()">Hesabı Kaydet</button>
@@ -274,7 +327,6 @@
             <div id="settings-no-account" style="color:var(--text-muted); text-align:center; margin-top:50px;">Lütfen ayarlamak için sol listeden bir hesap seçin.</div>
             
             <div id="settings-form" class="settings-container" style="display:none;">
-              <!-- Online Kilit Katmanı (Blur Overlay) -->
               <div id="settings-lock-overlay" class="settings-overlay" style="display:none;">
                 <span style="font-size: 2.2rem; margin-bottom: 8px;">🔒</span>
                 <span style="font-size: 1.05rem; color: #fff;">Ayarları Değiştirmek İçin Bot Çevrimdışı Olmalı</span>
@@ -321,10 +373,24 @@
 
               <div class="form-group" style="margin-bottom:10px;"><label>Döngü Komutları (Alt alta)</label><textarea id="det-edit-loop-cmds" class="form-control" rows="3"></textarea></div>
               
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                 <div class="form-group"><label>Döngü Sıklık (s)</label><input type="number" id="det-edit-loop-interval" class="form-control"></div>
                 <div class="form-group"><label>Satır Gecikme (s)</label><input type="number" id="det-edit-loop-delay" class="form-control"></div>
                 <div class="form-group"><label>Auto-Restart (dk)</label><input type="number" id="det-edit-restart-mins" class="form-control"></div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 15px; align-items: stretch;">
+                <label class="checkbox-card" for="det-edit-enable-walk">
+                  <input type="checkbox" id="det-edit-enable-walk">
+                  <div class="checkbox-text">
+                    <span class="checkbox-title">Konum Değiştirme (Adımlama)</span>
+                    <span class="checkbox-desc">AFK atılmayı ve sohbet/hareket kilitlerini aşmak için adım atar.</span>
+                  </div>
+                </label>
+                <div class="form-group" style="margin:0; display:flex; flex-direction:column; justify-content:center;">
+                  <label style="font-size:0.68rem; margin-bottom:2px;">Sıklık (sn)</label>
+                  <input type="number" id="det-edit-walk-interval" class="form-control" placeholder="300">
+                </div>
               </div>
 
               <button class="btn-action save" style="width:100%; padding:10px;" onclick="saveSelectedChanges()">Değişiklikleri Kaydet</button>
@@ -507,12 +573,14 @@
       const loopInterval = parseInt(document.getElementById('add-loop-interval').value) || 300;
       const loopDelay = parseInt(document.getElementById('add-loop-delay').value) || 10;
       const autoRestartMins = parseInt(document.getElementById('add-restart-mins').value) || 0;
+      const enableWalk = document.getElementById('add-enable-walk').checked;
+      const walkInterval = parseInt(document.getElementById('add-walk-interval').value) || 300;
 
       if (!username || !host) return showToast('Kullanıcı adı ve IP boş kalamaz.');
 
       const res = await fetch('/api/accounts/add', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmds, loopInterval, loopDelay, autoRestartMins })
+        body: JSON.stringify({ username, host, port, version, commands, broadcastMsg, broadcastInterval, loopCmds, loopInterval, loopDelay, autoRestartMins, enableWalk, walkInterval })
       });
       const data = await res.json();
       if (data.success) {
@@ -534,7 +602,9 @@
         loopCmds: document.getElementById('det-edit-loop-cmds').value,
         loopInterval: parseInt(document.getElementById('det-edit-loop-interval').value) || 300,
         loopDelay: parseInt(document.getElementById('det-edit-loop-delay').value) || 10,
-        autoRestartMins: parseInt(document.getElementById('det-edit-restart-mins').value) || 0
+        autoRestartMins: parseInt(document.getElementById('det-edit-restart-mins').value) || 0,
+        enableWalk: document.getElementById('det-edit-enable-walk').checked,
+        walkInterval: parseInt(document.getElementById('det-edit-walk-interval').value) || 300
       };
 
       const res = await fetch('/api/accounts/edit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -597,6 +667,8 @@
         document.getElementById('det-edit-loop-interval').value = s.loopInterval || 300;
         document.getElementById('det-edit-loop-delay').value = s.loopDelay || 10;
         document.getElementById('det-edit-restart-mins').value = s.autoRestartMins || 0;
+        document.getElementById('det-edit-enable-walk').checked = Boolean(s.enableWalk);
+        document.getElementById('det-edit-walk-interval').value = s.walkInterval || 300;
       }
     }
 
